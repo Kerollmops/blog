@@ -10,11 +10,13 @@ on:
     types: [opened, closed, reopened, edited, deleted, labeled, unlabeled, transferred]
 
 jobs:
-  check-dist:
+  build-and-upload:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.WORKFLOW_GIT_ACCESS_TOKEN }}
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
