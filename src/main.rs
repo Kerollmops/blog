@@ -13,9 +13,6 @@ fn main() -> anyhow::Result<()> {
     fs::remove_dir_all("output").or_else(ignore_not_found)?;
     fs::create_dir("output")?;
 
-    let mut cname_file = File::create("output/CNAME")?;
-    cname_file.write_all(b"blog.kerollmops.com")?;
-
     let mut index_file = File::create("output/index.html")?;
     let index = IndexTemplate { name: "world" };
     index.write_into(&mut index_file)?;
