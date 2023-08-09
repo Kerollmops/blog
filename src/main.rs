@@ -1,5 +1,5 @@
 use std::fs::{self, File};
-use std::io::{self, ErrorKind};
+use std::io::{self, ErrorKind, Write};
 
 use askama::Template;
 
@@ -10,8 +10,11 @@ struct IndexTemplate<'a> {
 }
 
 fn main() -> anyhow::Result<()> {
-    fs::remove_dir("output").or_else(ignore_not_found)?;
+    fs::remove_dir_all("output").or_else(ignore_not_found)?;
     fs::create_dir("output")?;
+
+    let mut cname_file = File::create("output/CNAME")?;
+    cname_file.write_all(b"blog.kerollmops.com")?;
 
     let mut index_file = File::create("output/index.html")?;
     let index = IndexTemplate { name: "world" };

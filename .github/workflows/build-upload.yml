@@ -1,0 +1,30 @@
+name: Build and Upload to gh-pages
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  issues:
+    # All those event could change the blog rendering, showing/hiding content
+    types: [opened, closed, reopened, edited, deleted, labeled, unlabeled, transferred]
+
+jobs:
+  check-dist:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release
+
+      - name: Build the pages using the templates
+        run: cargo run --release
+
+      - name: Upload the output folder on the gh-pages branch
+        run: git push origin `git subtree split --prefix output main`:gh-pages --force
