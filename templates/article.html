@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block head %}
+  <link rel="stylesheet" href="https://esm.sh/@wooorm/starry-night@2/style/both.css">
+  <style></style>
+{% endblock %}
+
+{% block content %}
+  <article>
+      <h1>{{ title }}</h1>
+      {{ html_content }}
+  </article>
+{% endblock %}
