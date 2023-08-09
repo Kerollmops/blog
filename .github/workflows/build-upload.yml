@@ -15,8 +15,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.WORKFLOW_GIT_ACCESS_TOKEN }}
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
@@ -28,5 +26,8 @@ jobs:
       - name: Build the pages using the templates
         run: cargo run --release
 
-      - name: Upload the output folder on the gh-pages branch
-        run: git push origin `git subtree split --prefix output main`:gh-pages --force
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.WORKFLOW_GIT_ACCESS_TOKEN }}
+          publish_dir: ./output
