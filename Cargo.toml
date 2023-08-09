@@ -1,0 +1,10 @@
+[package]
+name = "blog"
+description = "A small tool that generate the static pages of my blog"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.72"
+askama = "0.12.0"
+octocrab = "0.29.1"
