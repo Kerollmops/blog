@@ -1,7 +1,11 @@
+use std::io::Cursor;
+use std::path::Path;
+
 use askama::Template;
 use big_s::S;
 use octocrab::params::State;
 use octocrab::{format_media_type, OctocrabBuilder};
+use reqwest::IntoUrl;
 use tokio::fs::{self, File};
 use tokio::io::{self, ErrorKind};
 
@@ -62,6 +66,21 @@ async fn main() -> anyhow::Result<()> {
     let index = IndexTemplate { title: S("Kerollmops' blog"), articles };
     index.write_into(&mut index_file)?;
 
+    fs::create_dir("output/style").await?;
+    fetch_url(
+        "https://raw.githubusercontent.com/wooorm/starry-night/2.1.1/style/both.css",
+        "output/style/both.css",
+    )
+    .await?;
+
+    Ok(())
+}
+
+async fn fetch_url(url: impl IntoUrl, file_name: impl AsRef<Path>) -> anyhow::Result<()> {
+    let response = reqwest::get(url).await?;
+    let mut file = File::create(file_name).await?;
+    let mut content = Cursor::new(response.bytes().await?);
+    io::copy(&mut content, &mut file).await?;
     Ok(())
 }
 
