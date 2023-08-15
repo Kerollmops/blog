@@ -3,30 +3,13 @@ use std::path::Path;
 
 use askama::Template;
 use big_s::S;
+use octocrab::models::timelines::Rename;
+use octocrab::models::Event;
 use octocrab::params::State;
 use octocrab::{format_media_type, OctocrabBuilder};
 use reqwest::IntoUrl;
 use tokio::fs::{self, File};
 use tokio::io::{self, ErrorKind};
-
-#[derive(Template)]
-#[template(path = "index.html")]
-struct IndexTemplate {
-    title: String,
-    articles: Vec<ArticleInList>,
-}
-
-struct ArticleInList {
-    title: String,
-    url: String,
-}
-
-#[derive(Template)]
-#[template(path = "article.html", escape = "none")]
-struct ArticleTemplate {
-    title: String,
-    html_content: String,
-}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -52,19 +35,43 @@ async fn main() -> anyhow::Result<()> {
 
     let mut articles = Vec::new();
     for issue in page {
-        articles
-            .push(ArticleInList { title: issue.title.clone(), url: format!("{}", issue.number) });
+        articles.push(ArticleInList {
+            title: issue.title.clone(),
+            url: correct_snake_case(&issue.title),
+        });
 
-        let mut article_file =
-            File::create(format!("output/{}.html", issue.number)).await?.into_std().await;
-        let article =
-            ArticleTemplate { title: issue.title, html_content: issue.body_html.unwrap() };
-        article.write_into(&mut article_file)?;
+        // But we must also create the redirection HTML pages to redirect
+        // from the previous names of the article.
+        let events = octocrab
+            .issues(owner, repo)
+            .list_timeline_events(issue.number)
+            .per_page(100)
+            .send()
+            .await?;
+        for event in events.into_iter().filter(|e| e.event == Event::Renamed) {
+            if let Some(from_title) = event.rename.and_then(extract_from_field_from_rename) {
+                create_and_write_into(
+                    format!("output/{}.html", correct_snake_case(from_title)),
+                    RedirectTemplate { redirect_url: correct_snake_case(&issue.title) },
+                )
+                .await?;
+            }
+        }
+
+        // Then we create the article HTML pages. We must do that after the redirection
+        // pages to be sure to replace the final HTML page by the article.
+        create_and_write_into(
+            format!("output/{}.html", correct_snake_case(&issue.title)),
+            ArticleTemplate { title: issue.title, html_content: issue.body_html.unwrap() },
+        )
+        .await?;
     }
 
-    let mut index_file = File::create("output/index.html").await?.into_std().await;
-    let index = IndexTemplate { title: S("Kerollmops' blog"), articles };
-    index.write_into(&mut index_file)?;
+    create_and_write_into(
+        "output/index.html",
+        IndexTemplate { title: S("Kerollmops' blog"), articles },
+    )
+    .await?;
 
     fs::create_dir("output/style").await?;
     fetch_url(
@@ -73,6 +80,48 @@ async fn main() -> anyhow::Result<()> {
     )
     .await?;
 
+    Ok(())
+}
+
+#[derive(Template)]
+#[template(path = "index.html")]
+struct IndexTemplate {
+    title: String,
+    articles: Vec<ArticleInList>,
+}
+
+struct ArticleInList {
+    title: String,
+    url: String,
+}
+
+#[derive(Template)]
+#[template(path = "article.html", escape = "none")]
+struct ArticleTemplate {
+    title: String,
+    html_content: String,
+}
+
+#[derive(Template)]
+#[template(path = "redirect.html", escape = "none")]
+struct RedirectTemplate {
+    redirect_url: String,
+}
+
+fn correct_snake_case(s: impl AsRef<str>) -> String {
+    use convert_case::{Boundary, Case, Converter};
+    Converter::new()
+        .remove_boundaries(&[Boundary::UpperLower, Boundary::LowerUpper])
+        .to_case(Case::Kebab)
+        .convert(s)
+}
+
+async fn create_and_write_into(
+    path: impl AsRef<Path>,
+    template: impl Template,
+) -> anyhow::Result<()> {
+    let mut article_file = File::create(path).await?.into_std().await;
+    template.write_into(&mut article_file)?;
     Ok(())
 }
 
@@ -89,5 +138,14 @@ fn ignore_not_found(e: io::Error) -> io::Result<()> {
         Ok(())
     } else {
         Err(e)
+    }
+}
+
+/// Because the Rename struct only has private field we are
+/// forced to serialize/deserialize-trick to extract the from field, for now.
+fn extract_from_field_from_rename(rename: Rename) -> Option<String> {
+    match serde_json::to_value(rename).unwrap()["from"] {
+        serde_json::Value::String(ref s) => Some(s.clone()),
+        _ => None,
     }
 }
