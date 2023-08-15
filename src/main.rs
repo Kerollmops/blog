@@ -1,3 +1,4 @@
+use std::env;
 use std::io::Cursor;
 use std::path::Path;
 
@@ -18,11 +19,22 @@ async fn main() -> anyhow::Result<()> {
 
     fs::remove_dir_all("output").await.or_else(ignore_not_found)?;
     fs::create_dir("output").await?;
+    fs::create_dir("output/assets").await?;
+
+    // Copy the JS assets
+    fs::copy("assets/script.js", "output/assets/script.js").await?;
 
     // force GitHub to return HTML content
-    let octocrab = OctocrabBuilder::default()
-        .add_header(http::header::ACCEPT, format_media_type("html"))
-        .build()?;
+    let octocrab = if let Ok(token) = env::var("GITHUB_TOKEN") {
+        OctocrabBuilder::default()
+            .add_header(http::header::ACCEPT, format_media_type("html"))
+            .add_header(http::header::AUTHORIZATION, format!("Bearer {}", token))
+            .build()?
+    } else {
+        OctocrabBuilder::default()
+            .add_header(http::header::ACCEPT, format_media_type("html"))
+            .build()?
+    };
 
     let page = octocrab
         .issues(owner, repo)
@@ -48,6 +60,7 @@ async fn main() -> anyhow::Result<()> {
             .per_page(100)
             .send()
             .await?;
+
         for event in events.into_iter().filter(|e| e.event == Event::Renamed) {
             if let Some(from_title) = event.rename.and_then(extract_from_field_from_rename) {
                 create_and_write_into(
@@ -74,6 +87,7 @@ async fn main() -> anyhow::Result<()> {
     .await?;
 
     fs::create_dir("output/style").await?;
+    // Download starry-night for code-highlighting
     fetch_url(
         "https://raw.githubusercontent.com/wooorm/starry-night/2.1.1/style/both.css",
         "output/style/both.css",
