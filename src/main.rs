@@ -58,7 +58,7 @@ async fn main() -> anyhow::Result<()> {
 
         articles.push(ArticleInList {
             title: issue.title.clone(),
-            synopsis: synopsis(&body_html),
+            synopsis: synopsis(body_html),
             date: date.clone(),
             url: correct_snake_case(&issue.title),
         });
@@ -86,12 +86,15 @@ async fn main() -> anyhow::Result<()> {
         let author: User =
             octocrab::instance().get(format!("/users/{}", issue.user.login), None::<&()>).await?;
 
+        let mut profil_picture_url = author.avatar_url;
+        profil_picture_url.set_query(Some("v=4&s=100"));
+
         // Then we create the article HTML pages. We must do that after the redirection
         // pages to be sure to replace the final HTML page by the article.
         create_and_write_into(
             format!("output/{}.html", correct_snake_case(&issue.title)),
             ArticleTemplate {
-                profil_picture_url: author.avatar_url,
+                profil_picture_url,
                 username: author.name,
                 bio: author.bio,
                 date,
@@ -102,14 +105,12 @@ async fn main() -> anyhow::Result<()> {
         .await?;
     }
 
+    let mut profil_picture_url = author.avatar_url;
+    profil_picture_url.set_query(Some("v=4&s=100"));
+
     create_and_write_into(
         "output/index.html",
-        IndexTemplate {
-            profil_picture_url: author.avatar_url,
-            username: author.name,
-            bio: author.bio,
-            articles,
-        },
+        IndexTemplate { profil_picture_url, username: author.name, bio: author.bio, articles },
     )
     .await?;
 
