@@ -13,6 +13,8 @@ use serde::Deserialize;
 use tokio::fs::{self, File};
 use tokio::io::{self, ErrorKind};
 
+const SYNOPSIS_LENGTH: usize = 200;
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let owner_repo = std::env::var("GITHUB_REPOSITORY").expect("please define `GITHUB_REPOSITORY`");
@@ -51,8 +53,13 @@ async fn main() -> anyhow::Result<()> {
 
     let mut articles = Vec::new();
     for issue in page {
+        let date = issue.created_at.format("%B %d, %Y").to_string();
+        let body_html = issue.body_html.as_ref().unwrap();
+
         articles.push(ArticleInList {
             title: issue.title.clone(),
+            synopsis: synopsis(&body_html),
+            date: date.clone(),
             url: correct_snake_case(&issue.title),
         });
 
@@ -87,7 +94,7 @@ async fn main() -> anyhow::Result<()> {
                 profil_picture_url: author.avatar_url,
                 username: author.name,
                 bio: author.bio,
-                date: issue.created_at.format("%B %d, %Y").to_string(),
+                date,
                 title: issue.title,
                 html_content: issue.body_html.unwrap(),
             },
@@ -135,6 +142,8 @@ struct IndexTemplate {
 
 struct ArticleInList {
     title: String,
+    date: String,
+    synopsis: String,
     url: String,
 }
 
@@ -153,6 +162,17 @@ struct ArticleTemplate {
 #[template(path = "redirect.html", escape = "none")]
 struct RedirectTemplate {
     redirect_url: String,
+}
+
+fn synopsis(s: impl AsRef<str>) -> String {
+    let mut synopsis = String::new();
+    for chunk in scraper::Html::parse_fragment(s.as_ref()).root_element().text() {
+        synopsis.push_str(chunk);
+        if synopsis.len() >= SYNOPSIS_LENGTH {
+            break;
+        }
+    }
+    synopsis
 }
 
 fn correct_snake_case(s: impl AsRef<str>) -> String {

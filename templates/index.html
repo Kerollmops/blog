@@ -15,18 +15,25 @@
           <p class="long-text text-uppercase">{{ username }}</p>
       </div>
   </a>
-
-  <p>{{ bio }}</p>
-
+  <p class="text-center">{{ bio }}</p>
+  <hr/>
 </header>
 {% endblock %}
 
 {% block content %}
-  <ul>
     {% for article in articles %}
-    <li><a href="{{ article.url }}">{{ article.title|e }}</a></li>
+    <a style="text-decoration: none;" href="{{ article.url }}">
+      <div class="card">
+         <div class="card-body">
+           <p class="text-center">
+               <small class="text-body-secondary">{{ article.date }}</small>
+           </p>
+           <h4 class="card-title text-center">{{ article.title }}</h4>
+           <p class="card-text">{{ article.synopsis }}</p>
+         </div>
+      </div>
+    </a>
     {% endfor %}
-  </ul>
 {% endblock %}
 
 {% block footer %}{% endblock %}
