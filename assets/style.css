@@ -7,12 +7,13 @@ h1 {
 }
 
 .highlight {
-  padding-left: 1rem;
-  padding-right: 1rem;
-  background-color: var(--bs-light-border-subtle);
-  padding-top: 1rem;
-  margin-bottom: 1rem;
-  border-radius: 0.2rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    background-color: var(--bs-light-bg-subtle);
+    padding-top: 1rem;
+    margin-bottom: 1rem;
+    border-top: 0.03rem solid var(--bs-dark-border-subtle);
+    border-bottom: 0.03rem solid var(--bs-dark-border-subtle);
 }
 
 header.profil {
