@@ -23,6 +23,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Copy the JS assets
     fs::copy("assets/script.js", "output/assets/script.js").await?;
+    fs::copy("assets/style.css", "output/assets/style.css").await?;
 
     // force GitHub to return HTML content
     let octocrab = if let Ok(token) = env::var("GITHUB_TOKEN") {
@@ -75,7 +76,11 @@ async fn main() -> anyhow::Result<()> {
         // pages to be sure to replace the final HTML page by the article.
         create_and_write_into(
             format!("output/{}.html", correct_snake_case(&issue.title)),
-            ArticleTemplate { title: issue.title, html_content: issue.body_html.unwrap() },
+            ArticleTemplate {
+                date: issue.created_at.format("%B %d, %Y").to_string(),
+                title: issue.title,
+                html_content: issue.body_html.unwrap(),
+            },
         )
         .await?;
     }
@@ -112,6 +117,7 @@ struct ArticleInList {
 #[derive(Template)]
 #[template(path = "article.html", escape = "none")]
 struct ArticleTemplate {
+    date: String,
     title: String,
     html_content: String,
 }

@@ -8,8 +8,9 @@
 {% endblock %}
 
 {% block content %}
+  <p class="text-center"><small class="text-body-secondary">{{ date }}</small></p>
+  <h1 class="mb-4 text-center">{{ title }}</h1>
   <article>
-      <h1 class="display-5 mb-4">{{ title }}</h1>
       {{ html_content }}
   </article>
 {% endblock %}
