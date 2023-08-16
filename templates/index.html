@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ title }}{% endblock %}
+{% block profile %}{% endblock %}
 
 {% block head %}
   <style>
@@ -8,7 +8,6 @@
 {% endblock %}
 
 {% block content %}
-  <h1>{{ title }}</h1>
   <ul>
     {% for article in articles %}
     <li><a href="{{ article.url }}">{{ article.title|e }}</a></li>

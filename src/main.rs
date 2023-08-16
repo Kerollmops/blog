@@ -8,7 +8,8 @@ use octocrab::models::timelines::Rename;
 use octocrab::models::Event;
 use octocrab::params::State;
 use octocrab::{format_media_type, OctocrabBuilder};
-use reqwest::IntoUrl;
+use reqwest::{IntoUrl, Url};
+use serde::Deserialize;
 use tokio::fs::{self, File};
 use tokio::io::{self, ErrorKind};
 
@@ -36,6 +37,8 @@ async fn main() -> anyhow::Result<()> {
             .add_header(http::header::ACCEPT, format_media_type("html"))
             .build()?
     };
+
+    let author: User = octocrab::instance().get(format!("/users/{}", owner), None::<&()>).await?;
 
     let page = octocrab
         .issues(owner, repo)
@@ -72,11 +75,17 @@ async fn main() -> anyhow::Result<()> {
             }
         }
 
+        // Everytime we fetch are article we also fetch the author real name
+        let author: User =
+            octocrab::instance().get(format!("/users/{}", issue.user.login), None::<&()>).await?;
+
         // Then we create the article HTML pages. We must do that after the redirection
         // pages to be sure to replace the final HTML page by the article.
         create_and_write_into(
             format!("output/{}.html", correct_snake_case(&issue.title)),
             ArticleTemplate {
+                profil_picture_url: author.avatar_url,
+                username: author.name,
                 date: issue.created_at.format("%B %d, %Y").to_string(),
                 title: issue.title,
                 html_content: issue.body_html.unwrap(),
@@ -87,7 +96,7 @@ async fn main() -> anyhow::Result<()> {
 
     create_and_write_into(
         "output/index.html",
-        IndexTemplate { title: S("Kerollmops' blog"), articles },
+        IndexTemplate { profil_picture_url: author.avatar_url, username: author.name, articles },
     )
     .await?;
 
@@ -102,10 +111,17 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[derive(Deserialize)]
+struct User {
+    avatar_url: Url,
+    name: String,
+}
+
 #[derive(Template)]
 #[template(path = "index.html")]
 struct IndexTemplate {
-    title: String,
+    profil_picture_url: Url,
+    username: String,
     articles: Vec<ArticleInList>,
 }
 
@@ -117,6 +133,8 @@ struct ArticleInList {
 #[derive(Template)]
 #[template(path = "article.html", escape = "none")]
 struct ArticleTemplate {
+    profil_picture_url: Url,
+    username: String,
     date: String,
     title: String,
     html_content: String,
