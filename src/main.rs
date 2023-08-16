@@ -86,6 +86,7 @@ async fn main() -> anyhow::Result<()> {
             ArticleTemplate {
                 profil_picture_url: author.avatar_url,
                 username: author.name,
+                bio: author.bio,
                 date: issue.created_at.format("%B %d, %Y").to_string(),
                 title: issue.title,
                 html_content: issue.body_html.unwrap(),
@@ -96,7 +97,12 @@ async fn main() -> anyhow::Result<()> {
 
     create_and_write_into(
         "output/index.html",
-        IndexTemplate { profil_picture_url: author.avatar_url, username: author.name, articles },
+        IndexTemplate {
+            profil_picture_url: author.avatar_url,
+            username: author.name,
+            bio: author.bio,
+            articles,
+        },
     )
     .await?;
 
@@ -115,6 +121,7 @@ async fn main() -> anyhow::Result<()> {
 struct User {
     avatar_url: Url,
     name: String,
+    bio: String,
 }
 
 #[derive(Template)]
@@ -122,6 +129,7 @@ struct User {
 struct IndexTemplate {
     profil_picture_url: Url,
     username: String,
+    bio: String,
     articles: Vec<ArticleInList>,
 }
 
@@ -135,6 +143,7 @@ struct ArticleInList {
 struct ArticleTemplate {
     profil_picture_url: Url,
     username: String,
+    bio: String,
     date: String,
     title: String,
     html_content: String,

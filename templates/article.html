@@ -7,10 +7,28 @@
   <style></style>
 {% endblock %}
 
+{% block header %}
+<header class="profil">
+  <a href="/">
+      <div class="text-center">
+          <img src="{{ profil_picture_url }}" class="profil-picture" alt="Profil picture of {{ username }}">
+          <p class="long-text text-uppercase">{{ username }}</p>
+      </div>
+  </a>
+</header>
+{% endblock %}
+
 {% block content %}
   <p class="text-center"><small class="text-body-secondary">{{ date }}</small></p>
   <h1 class="mb-4 text-center">{{ title }}</h1>
   <article>
       {{ html_content }}
   </article>
+{% endblock %}
+
+{% block footer %}
+  <footer class="profil text-center">
+    <h6 class="long-text text-uppercase">About {{ username }}</h6>
+    <p>{{ bio }}</p>
+  </footer>
 {% endblock %}

@@ -24,7 +24,7 @@ header.profil a {
   text-decoration: none;
 }
 
-.profil p {
+.profil .long-text {
     color: var(--bs-secondary-color);
     font-weight: 300;
     letter-spacing: 0.1rem;
@@ -36,6 +36,20 @@ header.profil a {
   width: 3rem;
   height: 3rem;
   border-radius: 10rem;
+}
+
+article {
+  margin-bottom: 4rem;
+  margin-top: 4rem;
+}
+
+footer {
+  margin-bottom: 4rem;
+}
+
+footer p, .profil p {
+  color: var(--bs-gray);
+  font-weight: 250;
 }
 
 :root {

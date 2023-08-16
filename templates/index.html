@@ -7,6 +7,20 @@
   </style>
 {% endblock %}
 
+{% block header %}
+<header class="profil">
+  <a href="/">
+      <div class="text-center">
+          <img src="{{ profil_picture_url }}" class="profil-picture" alt="Profil picture of {{ username }}">
+          <p class="long-text text-uppercase">{{ username }}</p>
+      </div>
+  </a>
+
+  <p>{{ bio }}</p>
+
+</header>
+{% endblock %}
+
 {% block content %}
   <ul>
     {% for article in articles %}
@@ -14,3 +28,5 @@
     {% endfor %}
   </ul>
 {% endblock %}
+
+{% block footer %}{% endblock %}
