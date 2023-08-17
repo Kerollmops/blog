@@ -1,5 +1,4 @@
 use std::env;
-use std::io::Cursor;
 use std::path::Path;
 
 use askama::Template;
@@ -8,7 +7,7 @@ use octocrab::models::timelines::Rename;
 use octocrab::models::Event;
 use octocrab::params::State;
 use octocrab::{format_media_type, OctocrabBuilder};
-use reqwest::{IntoUrl, Url};
+use reqwest::Url;
 use serde::Deserialize;
 use tokio::fs::{self, File};
 use tokio::io::{self, ErrorKind};
@@ -28,6 +27,7 @@ async fn main() -> anyhow::Result<()> {
     fs::copy("assets/script.js", "output/assets/script.js").await?;
     fs::copy("assets/style.css", "output/assets/style.css").await?;
     fs::copy("assets/bootstrap.min.css", "output/assets/bootstrap.min.css").await?;
+    fs::copy("assets/starry-night.css", "output/assets/starry-night.css").await?;
 
     // force GitHub to return HTML content
     let octocrab = if let Ok(token) = env::var("GITHUB_TOKEN") {
@@ -115,13 +115,6 @@ async fn main() -> anyhow::Result<()> {
     )
     .await?;
 
-    // Download starry-night for code-highlighting
-    fetch_url(
-        "https://raw.githubusercontent.com/wooorm/starry-night/2.1.1/style/both.css",
-        "output/assets/both.css",
-    )
-    .await?;
-
     Ok(())
 }
 
@@ -190,14 +183,6 @@ async fn create_and_write_into(
 ) -> anyhow::Result<()> {
     let mut article_file = File::create(path).await?.into_std().await;
     template.write_into(&mut article_file)?;
-    Ok(())
-}
-
-async fn fetch_url(url: impl IntoUrl, file_name: impl AsRef<Path>) -> anyhow::Result<()> {
-    let response = reqwest::get(url).await?;
-    let mut file = File::create(file_name).await?;
-    let mut content = Cursor::new(response.bytes().await?);
-    io::copy(&mut content, &mut file).await?;
     Ok(())
 }
 
