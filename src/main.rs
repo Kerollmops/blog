@@ -27,6 +27,7 @@ async fn main() -> anyhow::Result<()> {
     // Copy the JS assets
     fs::copy("assets/script.js", "output/assets/script.js").await?;
     fs::copy("assets/style.css", "output/assets/style.css").await?;
+    fs::copy("assets/bootstrap.min.css", "output/assets/bootstrap.min.css").await?;
 
     // force GitHub to return HTML content
     let octocrab = if let Ok(token) = env::var("GITHUB_TOKEN") {
@@ -114,11 +115,10 @@ async fn main() -> anyhow::Result<()> {
     )
     .await?;
 
-    fs::create_dir("output/style").await?;
     // Download starry-night for code-highlighting
     fetch_url(
         "https://raw.githubusercontent.com/wooorm/starry-night/2.1.1/style/both.css",
-        "output/style/both.css",
+        "output/assets/both.css",
     )
     .await?;
 
