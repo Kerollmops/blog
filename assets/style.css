@@ -7,8 +7,10 @@ h1 {
 }
 
 .highlight {
-    padding-left: 1rem;
-    padding-right: 1rem;
+    margin-left: -12px;
+    margin-right: -12px;
+    padding-left: 12px;
+    padding-right: 12px;
     background-color: var(--bs-light-bg-subtle);
     padding-top: 1rem;
     margin-bottom: 1rem;
