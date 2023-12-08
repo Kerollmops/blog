@@ -176,7 +176,7 @@ fn correct_snake_case(s: impl AsRef<str>) -> String {
         .remove_boundaries(&[Boundary::UpperLower, Boundary::LowerUpper])
         .to_case(Case::Kebab)
         .convert(s);
-    correct.replace('/', "_")
+    correct.replace(['/', '-', ':'], "_")
 }
 
 async fn create_and_write_into(
