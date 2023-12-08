@@ -11,6 +11,10 @@ h1 {
     margin-bottom: 1rem;
 }
 
+article img {
+    margin-bottom: 1rem;
+}
+
 .highlight {
     margin-left: -12px;
     margin-right: -12px;
