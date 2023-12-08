@@ -1,6 +1,7 @@
 use std::env;
 use std::path::Path;
 
+use anyhow::Context;
 use askama::Template;
 use big_s::S;
 use octocrab::models::timelines::Rename;
@@ -171,17 +172,23 @@ fn synopsis(s: impl AsRef<str>) -> String {
 
 fn correct_snake_case(s: impl AsRef<str>) -> String {
     use convert_case::{Boundary, Case, Converter};
-    Converter::new()
+    let correct = Converter::new()
         .remove_boundaries(&[Boundary::UpperLower, Boundary::LowerUpper])
         .to_case(Case::Kebab)
-        .convert(s)
+        .convert(s);
+    correct.replace('/', "_")
 }
 
 async fn create_and_write_into(
     path: impl AsRef<Path>,
     template: impl Template,
 ) -> anyhow::Result<()> {
-    let mut article_file = File::create(path).await?.into_std().await;
+    let path = path.as_ref();
+    let mut article_file = File::create(path)
+        .await
+        .with_context(|| format!("When opening {:?}", path.display()))?
+        .into_std()
+        .await;
     template.write_into(&mut article_file)?;
     Ok(())
 }
