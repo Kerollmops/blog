@@ -22,19 +22,16 @@
 {% endblock %}
 
 {% block content %}
+<ol class="custom">
     {% for article in articles %}
-    <a style="text-decoration: none;" href="{{ article.url }}">
-      <div class="card">
-         <div class="card-body">
-           <p class="text-center">
-               <small class="text-body-secondary">{{ article.date }}</small>
-           </p>
-           <h4 class="card-title text-center">{{ article.title }}</h4>
-           <p class="card-text">{{ article.synopsis }}</p>
-         </div>
-      </div>
-    </a>
+    <li>
+        <a style="text-decoration: none;" href="{{ article.url }}">
+            <h4 class="card-title">{{ article.title }}</h4>
+            <p class="card-text">{{ article.synopsis }}</p>
+        </a>
+    </li>
     {% endfor %}
+</ol>
 {% endblock %}
 
 {% block footer %}{% endblock %}

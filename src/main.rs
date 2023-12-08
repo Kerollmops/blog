@@ -61,7 +61,6 @@ async fn main() -> anyhow::Result<()> {
         articles.push(ArticleInList {
             title: issue.title.clone(),
             synopsis: synopsis(body_html),
-            date: date.clone(),
             url: correct_snake_case(&issue.title),
         });
 
@@ -137,7 +136,6 @@ struct IndexTemplate {
 
 struct ArticleInList {
     title: String,
-    date: String,
     synopsis: String,
     url: String,
 }
