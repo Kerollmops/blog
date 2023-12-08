@@ -86,7 +86,7 @@ ol.custom > li:before {
     content: "#" counter(customlistcounter);
     float: left;
     font-size: 3rem;
-    left: -4rem;
+    margin-right: 1rem;
 }
 
 ol.custom:first-child {
@@ -106,6 +106,7 @@ p.card-text {
 .card-title {
     color: var(--bs-body-color);
     margin-top: 0.5rem;
+    min-height: 4rem;
 }
 
 hr {
