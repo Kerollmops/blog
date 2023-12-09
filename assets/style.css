@@ -75,10 +75,12 @@ ol.custom > li {
     margin-bottom: 4rem;
     display: inline-block;
     transition: 0.3s;
+    padding: 5px;
+    border-radius: 3px;
 }
 
 ol.custom > li:hover {
-    background-color: var(--bs-gray-100);
+    background-color: var(--bs-light-bg-subtle);
     transition: 0.1s;
 }
 
@@ -96,11 +98,6 @@ ol.custom:first-child {
 p.card-text {
     text-align: left;
     color: var(--bs-gray-600);
-}
-
-.card-text:last-child {
-    margin: ;
-    margin-top: 1rem;
 }
 
 .card-title {
