@@ -169,12 +169,20 @@ fn synopsis(s: impl AsRef<str>) -> String {
 }
 
 fn correct_snake_case(s: impl AsRef<str>) -> String {
-    use convert_case::{Boundary, Case, Converter};
-    let correct = Converter::new()
-        .remove_boundaries(&[Boundary::UpperLower, Boundary::LowerUpper])
-        .to_case(Case::Kebab)
-        .convert(s);
-    correct.replace(['/', '_', ':'], "-").replace("--", "-")
+    use slice_group_by::StrGroupBy;
+
+    let mut output = String::new();
+    for group in s.as_ref().linear_group_by_key(|x| x.is_ascii_alphanumeric()) {
+        if let Some(x) = group.chars().next() {
+            if x.is_alphanumeric() {
+                output.extend(group.chars().map(|x| x.to_ascii_lowercase()));
+            } else {
+                output.push('-');
+            }
+        }
+    }
+
+    output
 }
 
 async fn create_and_write_into(
