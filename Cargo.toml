@@ -10,6 +10,7 @@ askama = "0.12.0"
 big_s = "1.0.2"
 http = "0.2.9"
 octocrab = "0.29.1"
+regex = { version = "1.10.2", default-features = false, features = ["unicode-perl"] }
 reqwest = "0.11.18"
 scraper = { version = "0.17.1", default-features = false }
 serde = { version = "1.0.183", features = ["derive"] }

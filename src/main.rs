@@ -4,6 +4,7 @@ use std::path::Path;
 use anyhow::Context;
 use askama::Template;
 use big_s::S;
+use http::header::{ACCEPT, AUTHORIZATION};
 use octocrab::models::timelines::Rename;
 use octocrab::models::Event;
 use octocrab::params::State;
@@ -14,6 +15,7 @@ use tokio::fs::{self, File};
 use tokio::io::{self, ErrorKind};
 
 const SYNOPSIS_LENGTH: usize = 200;
+const GITHUB_BASE_URL: &str = "https://github.com/";
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -33,16 +35,15 @@ async fn main() -> anyhow::Result<()> {
     // force GitHub to return HTML content
     let octocrab = if let Ok(token) = env::var("GITHUB_TOKEN") {
         OctocrabBuilder::default()
-            .add_header(http::header::ACCEPT, format_media_type("html"))
-            .add_header(http::header::AUTHORIZATION, format!("Bearer {}", token))
+            .add_header(ACCEPT, format_media_type("html"))
+            .add_header(AUTHORIZATION, format!("Bearer {}", token))
             .build()?
     } else {
-        OctocrabBuilder::default()
-            .add_header(http::header::ACCEPT, format_media_type("html"))
-            .build()?
+        OctocrabBuilder::default().add_header(ACCEPT, format_media_type("html")).build()?
     };
 
     let author: User = octocrab::instance().get(format!("/users/{}", owner), None::<&()>).await?;
+    let html_bio = linkify_at_references(author.bio);
 
     let page = octocrab
         .issues(owner, repo)
@@ -97,7 +98,7 @@ async fn main() -> anyhow::Result<()> {
             ArticleTemplate {
                 profil_picture_url,
                 username: author.name,
-                bio: author.bio,
+                html_bio: html_bio.clone(),
                 date,
                 title: issue.title,
                 html_content: issue.body_html.unwrap(),
@@ -111,7 +112,7 @@ async fn main() -> anyhow::Result<()> {
 
     create_and_write_into(
         "output/index.html",
-        IndexTemplate { profil_picture_url, username: author.name, bio: author.bio, articles },
+        IndexTemplate { profil_picture_url, username: author.name, html_bio, articles },
     )
     .await?;
 
@@ -126,11 +127,11 @@ struct User {
 }
 
 #[derive(Template)]
-#[template(path = "index.html")]
+#[template(path = "index.html", escape = "none")]
 struct IndexTemplate {
     profil_picture_url: Url,
     username: String,
-    bio: String,
+    html_bio: String,
     articles: Vec<ArticleInList>,
 }
 
@@ -145,7 +146,7 @@ struct ArticleInList {
 struct ArticleTemplate {
     profil_picture_url: Url,
     username: String,
-    bio: String,
+    html_bio: String,
     date: String,
     title: String,
     html_content: String,
@@ -155,6 +156,13 @@ struct ArticleTemplate {
 #[template(path = "redirect.html", escape = "none")]
 struct RedirectTemplate {
     redirect_url: String,
+}
+
+fn linkify_at_references(bio: impl AsRef<str>) -> String {
+    regex::Regex::new(r"(@(\w+))")
+        .unwrap()
+        .replace_all(bio.as_ref(), format!("<a href=\"{GITHUB_BASE_URL}$2\">$1</a>"))
+        .into_owned()
 }
 
 fn synopsis(s: impl AsRef<str>) -> String {
