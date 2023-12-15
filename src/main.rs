@@ -60,6 +60,7 @@ async fn main() -> anyhow::Result<()> {
     for issue in page {
         let date = issue.created_at.format("%B %d, %Y").to_string();
         let body_html = issue.body_html.as_ref().unwrap();
+        let issue_handler = octocrab.issues(owner, repo);
 
         articles.push(ArticleInList {
             title: issue.title.clone(),
@@ -69,12 +70,7 @@ async fn main() -> anyhow::Result<()> {
 
         // But we must also create the redirection HTML pages to redirect
         // from the previous names of the article.
-        let events = octocrab
-            .issues(owner, repo)
-            .list_timeline_events(issue.number)
-            .per_page(100)
-            .send()
-            .await?;
+        let events = issue_handler.list_timeline_events(issue.number).per_page(100).send().await?;
 
         for event in events.into_iter().filter(|e| e.event == Event::Renamed) {
             if let Some(from_title) = event.rename.and_then(extract_from_field_from_rename) {
@@ -92,7 +88,7 @@ async fn main() -> anyhow::Result<()> {
 
         let mut profil_picture_url = author.avatar_url;
         profil_picture_url.set_query(Some("v=4&s=100"));
-        let reaction_counts = collect_reactions(octocrab.issues(owner, repo), issue.number).await?;
+        let reaction_counts = collect_reactions(&issue_handler, issue.number).await?;
 
         // Then we create the article HTML pages. We must do that after the redirection
         // pages to be sure to replace the final HTML page by the article.
@@ -215,7 +211,7 @@ struct ReactionCounts {
 }
 
 async fn collect_reactions(
-    handler: IssueHandler<'_>,
+    handler: &IssueHandler<'_>,
     issue_id: u64,
 ) -> anyhow::Result<ReactionCounts> {
     let mut output = ReactionCounts::default();
