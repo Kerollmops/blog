@@ -9,10 +9,10 @@ use octocrab::models::timelines::Rename;
 use octocrab::models::Event;
 use octocrab::params::State;
 use octocrab::{format_media_type, OctocrabBuilder};
-use reqwest::Url;
 use serde::Deserialize;
 use tokio::fs::{self, File};
 use tokio::io::{self, ErrorKind};
+use url::Url;
 
 const SYNOPSIS_LENGTH: usize = 200;
 const GITHUB_BASE_URL: &str = "https://github.com/";
