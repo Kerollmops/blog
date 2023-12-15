@@ -5,6 +5,8 @@ use anyhow::Context;
 use askama::Template;
 use big_s::S;
 use http::header::{ACCEPT, AUTHORIZATION};
+use octocrab::issues::IssueHandler;
+use octocrab::models::reactions::ReactionContent;
 use octocrab::models::timelines::Rename;
 use octocrab::models::Event;
 use octocrab::params::State;
@@ -90,6 +92,7 @@ async fn main() -> anyhow::Result<()> {
 
         let mut profil_picture_url = author.avatar_url;
         profil_picture_url.set_query(Some("v=4&s=100"));
+        let reaction_counts = collect_reactions(octocrab.issues(owner, repo), issue.number).await?;
 
         // Then we create the article HTML pages. We must do that after the redirection
         // pages to be sure to replace the final HTML page by the article.
@@ -104,6 +107,7 @@ async fn main() -> anyhow::Result<()> {
                 html_content: issue.body_html.unwrap(),
                 article_comments_url: issue.html_url,
                 comments_count: issue.comments,
+                reaction_counts,
             },
         )
         .await?;
@@ -154,6 +158,7 @@ struct ArticleTemplate {
     html_content: String,
     article_comments_url: Url,
     comments_count: u32,
+    reaction_counts: ReactionCounts,
 }
 
 #[derive(Template)]
@@ -195,6 +200,40 @@ fn correct_snake_case(s: impl AsRef<str>) -> String {
     }
 
     output
+}
+
+#[derive(Debug, Default)]
+struct ReactionCounts {
+    heart: usize,
+    plus_one: usize,
+    laugh: usize,
+    confused: usize,
+    hooray: usize,
+    minus_one: usize,
+    rocket: usize,
+    eyes: usize,
+}
+
+async fn collect_reactions(
+    handler: IssueHandler<'_>,
+    issue_id: u64,
+) -> anyhow::Result<ReactionCounts> {
+    let mut output = ReactionCounts::default();
+
+    for reaction in handler.list_reactions(issue_id).per_page(100).send().await? {
+        match reaction.content {
+            ReactionContent::Heart => output.heart += 1,
+            ReactionContent::PlusOne => output.plus_one += 1,
+            ReactionContent::Laugh => output.laugh += 1,
+            ReactionContent::Confused => output.confused += 1,
+            ReactionContent::Hooray => output.hooray += 1,
+            ReactionContent::MinusOne => output.minus_one += 1,
+            ReactionContent::Rocket => output.rocket += 1,
+            ReactionContent::Eyes => output.eyes += 1,
+        }
+    }
+
+    Ok(output)
 }
 
 async fn create_and_write_into(

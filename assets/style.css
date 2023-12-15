@@ -55,6 +55,18 @@ article {
     margin-top: 4rem;
 }
 
+.vote-emojis {
+    margin-top: 2rem;
+}
+
+.vote-emojis > .btn.btn-outline-secondary.vote-emoji {
+    border-radius: 20px;
+    font-size: 0.8rem;
+    margin-right: 0.2rem;
+    padding: 0.2rem 0.5rem;
+    letter-spacing: 0.1rem;
+}
+
 footer {
     margin-bottom: 4rem;
 }
