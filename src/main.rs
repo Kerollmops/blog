@@ -102,6 +102,8 @@ async fn main() -> anyhow::Result<()> {
                 date,
                 title: issue.title,
                 html_content: issue.body_html.unwrap(),
+                article_comments_url: issue.html_url,
+                comments_count: issue.comments,
             },
         )
         .await?;
@@ -150,6 +152,8 @@ struct ArticleTemplate {
     date: String,
     title: String,
     html_content: String,
+    article_comments_url: Url,
+    comments_count: u32,
 }
 
 #[derive(Template)]
