@@ -173,7 +173,7 @@ fn linkify_at_references(bio: impl AsRef<str>) -> String {
 fn insert_table_class_to_table(html: impl AsRef<str>) -> String {
     regex::Regex::new(r#"(<table) (role="table">)"#)
         .unwrap()
-        .replace_all(html.as_ref(), format!(r#"$1 class="table" $2"#))
+        .replace_all(html.as_ref(), r#"$1 class="table table-striped" $2"#)
         .into_owned()
 }
 
