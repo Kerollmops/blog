@@ -58,7 +58,7 @@ async fn main() -> anyhow::Result<()> {
 
     let mut articles = Vec::new();
     for issue in page {
-        let date = issue.created_at.format("%B %d, %Y").to_string();
+        let falback_date = issue.created_at.format("%B %d, %Y").to_string();
         let body_html = issue.body_html.as_ref().unwrap();
         let issue_handler = octocrab.issues(owner, repo);
 
@@ -72,13 +72,19 @@ async fn main() -> anyhow::Result<()> {
         // from the previous names of the article.
         let events = issue_handler.list_timeline_events(issue.number).per_page(100).send().await?;
 
-        for event in events.into_iter().filter(|e| e.event == Event::Renamed) {
+        let mut publish_date = None;
+        for event in
+            events.into_iter().filter(|e| matches!(e.event, Event::Renamed | Event::Labeled))
+        {
             if let Some(from_title) = event.rename.and_then(extract_from_field_from_rename) {
                 create_and_write_into(
                     format!("output/{}.html", correct_snake_case(from_title)),
                     RedirectTemplate { redirect_url: correct_snake_case(&issue.title) },
                 )
                 .await?;
+            }
+            if event.label.map_or(false, |e| e.name == "article") {
+                publish_date = event.created_at.map(|d| d.format("%B %d, %Y").to_string());
             }
         }
 
@@ -98,7 +104,7 @@ async fn main() -> anyhow::Result<()> {
                 profil_picture_url,
                 username: author.name,
                 html_bio: html_bio.clone(),
-                date,
+                publish_date: publish_date.unwrap_or(falback_date),
                 title: issue.title,
                 html_content: insert_table_class_to_table(issue.body_html.unwrap()),
                 article_comments_url: issue.html_url,
@@ -149,7 +155,7 @@ struct ArticleTemplate {
     profil_picture_url: Url,
     username: String,
     html_bio: String,
-    date: String,
+    publish_date: String,
     title: String,
     html_content: String,
     article_comments_url: Url,
