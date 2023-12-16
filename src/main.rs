@@ -8,7 +8,6 @@ use http::header::{ACCEPT, AUTHORIZATION};
 use octocrab::issues::IssueHandler;
 use octocrab::models::reactions::ReactionContent;
 use octocrab::models::timelines::Rename;
-use octocrab::models::Event;
 use octocrab::params::State;
 use octocrab::{format_media_type, OctocrabBuilder};
 use serde::Deserialize;
@@ -73,9 +72,7 @@ async fn main() -> anyhow::Result<()> {
         let events = issue_handler.list_timeline_events(issue.number).per_page(100).send().await?;
 
         let mut publish_date = None;
-        for event in
-            events.into_iter().filter(|e| matches!(e.event, Event::Renamed | Event::Labeled))
-        {
+        for event in events {
             if let Some(from_title) = event.rename.and_then(extract_from_field_from_rename) {
                 create_and_write_into(
                     format!("output/{}.html", correct_snake_case(from_title)),
