@@ -100,7 +100,7 @@ async fn main() -> anyhow::Result<()> {
                 html_bio: html_bio.clone(),
                 date,
                 title: issue.title,
-                html_content: issue.body_html.unwrap(),
+                html_content: insert_table_class_to_table(issue.body_html.unwrap()),
                 article_comments_url: issue.html_url,
                 comments_count: issue.comments,
                 reaction_counts,
@@ -167,6 +167,13 @@ fn linkify_at_references(bio: impl AsRef<str>) -> String {
     regex::Regex::new(r"(@(\w+))")
         .unwrap()
         .replace_all(bio.as_ref(), format!("<a href=\"{GITHUB_BASE_URL}$2\">$1</a>"))
+        .into_owned()
+}
+
+fn insert_table_class_to_table(html: impl AsRef<str>) -> String {
+    regex::Regex::new(r#"(<table) (role="table">)"#)
+        .unwrap()
+        .replace_all(html.as_ref(), format!(r#"$1 class="table" $2"#))
         .into_owned()
 }
 
