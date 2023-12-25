@@ -10,6 +10,8 @@ use octocrab::models::reactions::ReactionContent;
 use octocrab::models::timelines::Rename;
 use octocrab::params::State;
 use octocrab::{format_media_type, OctocrabBuilder};
+use rss::extension::atom::{AtomExtension, Link};
+use rss::{Channel, Item};
 use serde::Deserialize;
 use tokio::fs::{self, File};
 use tokio::io::{self, ErrorKind};
@@ -46,6 +48,14 @@ async fn main() -> anyhow::Result<()> {
     let author: User = octocrab::instance().get(format!("/users/{}", owner), None::<&()>).await?;
     let html_bio = linkify_at_references(author.bio);
 
+    let mut items = Vec::new();
+
+    let repository = octocrab::instance().repos(owner, repo).get().await?;
+    let homepage_url = repository
+        .homepage
+        .context("You must set the homepage URL of your blog on the repository")?;
+    let homepage_url = Url::parse(&homepage_url)?;
+
     let page = octocrab
         .issues(owner, repo)
         .list()
@@ -57,14 +67,16 @@ async fn main() -> anyhow::Result<()> {
 
     let mut articles = Vec::new();
     for issue in page {
-        let falback_date = issue.created_at.format("%B %d, %Y").to_string();
+        let falback_date = issue.created_at;
         let body_html = issue.body_html.as_ref().unwrap();
         let issue_handler = octocrab.issues(owner, repo);
+        let url = correct_snake_case(&issue.title);
+        let synopsis = synopsis(body_html);
 
         articles.push(ArticleInList {
             title: issue.title.clone(),
-            synopsis: synopsis(body_html),
-            url: correct_snake_case(&issue.title),
+            synopsis: synopsis.clone(),
+            url: url.clone(),
         });
 
         // But we must also create the redirection HTML pages to redirect
@@ -81,7 +93,7 @@ async fn main() -> anyhow::Result<()> {
                 .await?;
             }
             if event.label.map_or(false, |e| e.name == "article") {
-                publish_date = event.created_at.map(|d| d.format("%B %d, %Y").to_string());
+                publish_date = event.created_at;
             }
         }
 
@@ -93,6 +105,23 @@ async fn main() -> anyhow::Result<()> {
         profil_picture_url.set_query(Some("v=4&s=100"));
         let reaction_counts = collect_reactions(&issue_handler, issue.number).await?;
 
+        items.push(Item {
+            title: Some(issue.title.clone()),
+            link: Some(homepage_url.join(&url)?.to_string()),
+            description: Some(synopsis),
+            author: Some(author.name.clone()),
+            atom_ext: Some(AtomExtension {
+                links: vec![Link {
+                    rel: "related".into(),
+                    href: homepage_url.join(&url)?.to_string(),
+                    title: Some(issue.title.clone()),
+                    ..Default::default()
+                }],
+            }),
+            pub_date: Some(publish_date.as_ref().unwrap_or(&falback_date).to_rfc2822()),
+            ..Default::default()
+        });
+
         // Then we create the article HTML pages. We must do that after the redirection
         // pages to be sure to replace the final HTML page by the article.
         create_and_write_into(
@@ -101,7 +130,7 @@ async fn main() -> anyhow::Result<()> {
                 profil_picture_url,
                 username: author.name,
                 html_bio: html_bio.clone(),
-                publish_date: publish_date.unwrap_or(falback_date),
+                publish_date: publish_date.unwrap_or(falback_date).format("%B %d, %Y").to_string(),
                 title: issue.title,
                 html_content: insert_table_class_to_table(issue.body_html.unwrap()),
                 article_comments_url: issue.html_url,
@@ -117,9 +146,14 @@ async fn main() -> anyhow::Result<()> {
 
     create_and_write_into(
         "output/index.html",
-        IndexTemplate { profil_picture_url, username: author.name, html_bio, articles },
+        IndexTemplate { profil_picture_url, username: author.name.clone(), html_bio, articles },
     )
     .await?;
+
+    let channel = Channel { title: format!("{}'s blog", author.name), items, ..Default::default() };
+    fs::write("output/feed.atom", channel.to_string())
+        .await
+        .context("writing into `output/feed.atom`")?;
 
     Ok(())
 }
