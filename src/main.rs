@@ -151,7 +151,7 @@ async fn main() -> anyhow::Result<()> {
     .await?;
 
     let channel = Channel { title: format!("{}'s blog", author.name), items, ..Default::default() };
-    fs::write("output/feed.atom", channel.to_string())
+    fs::write("output/atom.xml", channel.to_string())
         .await
         .context("writing into `output/feed.atom`")?;
 
