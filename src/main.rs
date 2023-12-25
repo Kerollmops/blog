@@ -1,4 +1,5 @@
 use std::env;
+use std::fmt::format;
 use std::path::Path;
 
 use anyhow::Context;
@@ -110,7 +111,7 @@ async fn main() -> anyhow::Result<()> {
             title: Some(issue.title.clone()),
             link: Some(homepage_url.join(&url)?.to_string()),
             description: Some(synopsis),
-            author: Some(MY_EMAIL.to_string()),
+            author: Some(format!("{MY_EMAIL} ({})", author.name)),
             atom_ext: Some(AtomExtension {
                 links: vec![Link {
                     rel: "related".into(),
