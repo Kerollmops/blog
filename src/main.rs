@@ -11,7 +11,7 @@ use octocrab::models::timelines::Rename;
 use octocrab::params::State;
 use octocrab::{format_media_type, OctocrabBuilder};
 use rss::extension::atom::{AtomExtension, Link};
-use rss::{Channel, Item};
+use rss::{Channel, Guid, Item};
 use serde::Deserialize;
 use tokio::fs::{self, File};
 use tokio::io::{self, ErrorKind};
@@ -19,6 +19,7 @@ use url::Url;
 
 const SYNOPSIS_LENGTH: usize = 200;
 const GITHUB_BASE_URL: &str = "https://github.com/";
+const MY_EMAIL: &str = "renault.cle@gmail.com";
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -45,10 +46,8 @@ async fn main() -> anyhow::Result<()> {
         OctocrabBuilder::default().add_header(ACCEPT, format_media_type("html")).build()?
     };
 
-    let author: User = octocrab::instance().get(format!("/users/{}", owner), None::<&()>).await?;
-    let html_bio = linkify_at_references(author.bio);
-
-    let mut items = Vec::new();
+    let user: User = octocrab::instance().get(format!("/users/{}", owner), None::<&()>).await?;
+    let html_bio = linkify_at_references(user.bio);
 
     let repository = octocrab::instance().repos(owner, repo).get().await?;
     let homepage_url = repository
@@ -65,6 +64,7 @@ async fn main() -> anyhow::Result<()> {
         .send()
         .await?;
 
+    let mut items = Vec::new();
     let mut articles = Vec::new();
     for issue in page {
         let falback_date = issue.created_at;
@@ -106,10 +106,11 @@ async fn main() -> anyhow::Result<()> {
         let reaction_counts = collect_reactions(&issue_handler, issue.number).await?;
 
         items.push(Item {
+            guid: Some(Guid { value: homepage_url.join(&url)?.to_string(), permalink: true }),
             title: Some(issue.title.clone()),
             link: Some(homepage_url.join(&url)?.to_string()),
             description: Some(synopsis),
-            author: Some(author.name.clone()),
+            author: Some(MY_EMAIL.to_string()),
             atom_ext: Some(AtomExtension {
                 links: vec![Link {
                     rel: "related".into(),
@@ -141,17 +142,17 @@ async fn main() -> anyhow::Result<()> {
         .await?;
     }
 
-    let mut profil_picture_url = author.avatar_url;
+    let mut profil_picture_url = user.avatar_url;
     profil_picture_url.set_query(Some("v=4&s=100"));
 
     create_and_write_into(
         "output/index.html",
-        IndexTemplate { profil_picture_url, username: author.name.clone(), html_bio, articles },
+        IndexTemplate { profil_picture_url, username: user.name.clone(), html_bio, articles },
     )
     .await?;
 
     let channel = Channel {
-        title: format!("{}'s blog", author.name),
+        title: format!("{}'s blog", user.name),
         items,
         link: homepage_url.to_string(),
         ..Default::default()
