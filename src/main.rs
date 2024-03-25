@@ -1,5 +1,4 @@
 use std::env;
-use std::fmt::format;
 use std::path::Path;
 
 use anyhow::Context;
@@ -48,7 +47,7 @@ async fn main() -> anyhow::Result<()> {
     };
 
     let user: User = octocrab::instance().get(format!("/users/{}", owner), None::<&()>).await?;
-    let html_bio = linkify_at_references(user.bio);
+    let html_bio_owner = linkify_at_references(user.bio);
 
     let repository = octocrab::instance().repos(owner, repo).get().await?;
     let homepage_url = repository
@@ -101,6 +100,7 @@ async fn main() -> anyhow::Result<()> {
         // Everytime we fetch are article we also fetch the author real name
         let author: User =
             octocrab::instance().get(format!("/users/{}", issue.user.login), None::<&()>).await?;
+        let html_bio = linkify_at_references(author.bio);
 
         let mut profil_picture_url = author.avatar_url;
         profil_picture_url.set_query(Some("v=4&s=100"));
@@ -148,7 +148,12 @@ async fn main() -> anyhow::Result<()> {
 
     create_and_write_into(
         "output/index.html",
-        IndexTemplate { profil_picture_url, username: user.name.clone(), html_bio, articles },
+        IndexTemplate {
+            profil_picture_url,
+            username: user.name.clone(),
+            html_bio: html_bio_owner,
+            articles,
+        },
     )
     .await?;
 
