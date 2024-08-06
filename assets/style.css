@@ -73,6 +73,10 @@ a.user-mention {
     color: rgba(var(--bs-secondary-text-emphasis), var(--bs-link-opacity, 1));
 }
 
+a.user-mention:hover {
+    text-decoration: underline;
+}
+
 footer {
     margin-bottom: 4rem;
 }
