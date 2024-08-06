@@ -67,6 +67,12 @@ article {
     letter-spacing: 0.1rem;
 }
 
+a.user-mention {
+    text-decoration: none;
+    font-weight: bold;
+    color: rgba(var(--bs-secondary-text-emphasis), var(--bs-link-opacity, 1));
+}
+
 footer {
     margin-bottom: 4rem;
 }
