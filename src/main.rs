@@ -8,10 +8,12 @@ use http::header::{ACCEPT, AUTHORIZATION};
 use octocrab::issues::IssueHandler;
 use octocrab::models::reactions::ReactionContent;
 use octocrab::models::timelines::Rename;
+use octocrab::models::IssueId;
 use octocrab::params::State;
 use octocrab::{format_media_type, OctocrabBuilder};
 use rss::extension::atom::{AtomExtension, Link};
 use rss::{Channel, Guid, Item};
+use scraper::Html;
 use serde::Deserialize;
 use tokio::fs::{self, File};
 use tokio::io::{self, ErrorKind};
@@ -39,11 +41,11 @@ async fn main() -> anyhow::Result<()> {
     // force GitHub to return HTML content
     let octocrab = if let Ok(token) = env::var("GITHUB_TOKEN") {
         OctocrabBuilder::default()
-            .add_header(ACCEPT, format_media_type("html"))
+            .add_header(ACCEPT, format_media_type("full"))
             .add_header(AUTHORIZATION, format!("Bearer {}", token))
             .build()?
     } else {
-        OctocrabBuilder::default().add_header(ACCEPT, format_media_type("html")).build()?
+        OctocrabBuilder::default().add_header(ACCEPT, format_media_type("full")).build()?
     };
 
     let user: User = octocrab::instance().get(format!("/users/{}", owner), None::<&()>).await?;
@@ -68,10 +70,10 @@ async fn main() -> anyhow::Result<()> {
     let mut articles = Vec::new();
     for issue in page {
         let falback_date = issue.created_at;
-        let body_html = issue.body_html.as_ref().unwrap();
+        let body = issue.body.as_ref().unwrap();
         let issue_handler = octocrab.issues(owner, repo);
         let url = correct_snake_case(&issue.title);
-        let synopsis = synopsis(body_html);
+        let synopsis = synopsis(body);
 
         articles.push(ArticleInList {
             title: issue.title.clone(),
@@ -227,14 +229,17 @@ fn insert_table_class_to_table(html: impl AsRef<str>) -> String {
 }
 
 fn synopsis(s: impl AsRef<str>) -> String {
-    let mut synopsis = String::new();
-    for chunk in scraper::Html::parse_fragment(s.as_ref()).root_element().text() {
-        synopsis.push_str(chunk);
-        if synopsis.len() >= SYNOPSIS_LENGTH {
-            break;
+    let html = scraper::Html::parse_fragment(s.as_ref());
+    fn get_first_html_comment(document: &Html) -> Option<&str> {
+        for node in document.tree.nodes() {
+            if let Some(comment) = node.value().as_comment() {
+                return Some(comment);
+            }
         }
+        None
     }
-    synopsis
+
+    get_first_html_comment(&html).map_or_else(String::new, ToOwned::to_owned)
 }
 
 fn correct_snake_case(s: impl AsRef<str>) -> String {
