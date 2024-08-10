@@ -15,6 +15,20 @@ article img {
     margin-bottom: 1rem;
 }
 
+.markdown-alert.markdown-alert-note {
+    border-left: #0969da 8px solid;
+    padding: 0.5rem 1rem;
+}
+
+.markdown-alert-title {
+    color: #0969da;
+}
+
+.markdown-alert-title > .octicon.octicon-info {
+    margin-right: 5px;
+    margin-top: -3px;
+}
+
 .highlight {
     margin-left: -12px;
     margin-right: -12px;
