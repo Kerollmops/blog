@@ -16,8 +16,9 @@ article img {
 }
 
 .markdown-alert.markdown-alert-note {
-    border-left: #0969da 8px solid;
+    border-left: #0969da 0.5rem solid;
     padding: 0.5rem 1rem;
+    margin-bottom: 2rem;
 }
 
 .markdown-alert-title {
