@@ -97,7 +97,7 @@ async fn main() -> anyhow::Result<()> {
             }
         }
 
-        // Everytime we fetch are article we also fetch the author real name
+        // Everytime we fetch an article we also fetch the author real name
         let author: User =
             octocrab::instance().get(format!("/users/{}", issue.user.login), None::<&()>).await?;
         let html_bio = linkify_at_references(author.bio);
