@@ -8,7 +8,6 @@ use http::header::{ACCEPT, AUTHORIZATION};
 use octocrab::issues::IssueHandler;
 use octocrab::models::reactions::ReactionContent;
 use octocrab::models::timelines::Rename;
-use octocrab::models::IssueId;
 use octocrab::params::State;
 use octocrab::{format_media_type, OctocrabBuilder};
 use rss::extension::atom::{AtomExtension, Link};
@@ -19,13 +18,12 @@ use tokio::fs::{self, File};
 use tokio::io::{self, ErrorKind};
 use url::Url;
 
-const SYNOPSIS_LENGTH: usize = 200;
 const GITHUB_BASE_URL: &str = "https://github.com/";
-const MY_EMAIL: &str = "renault.cle@gmail.com";
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let owner_repo = std::env::var("GITHUB_REPOSITORY").expect("please define `GITHUB_REPOSITORY`");
+    let email_address = std::env::var("EMAIL_ADDRESS").expect("please define `EMAIL_ADDRESS`");
     let (owner, repo) = owner_repo.split_once('/').unwrap();
 
     fs::remove_dir_all("output").await.or_else(ignore_not_found)?;
@@ -113,7 +111,7 @@ async fn main() -> anyhow::Result<()> {
             title: Some(issue.title.clone()),
             link: Some(homepage_url.join(&url)?.to_string()),
             description: Some(synopsis),
-            author: Some(format!("{MY_EMAIL} ({})", author.name)),
+            author: Some(format!("{email_address} ({})", author.name)),
             atom_ext: Some(AtomExtension {
                 links: vec![Link {
                     rel: "related".into(),
