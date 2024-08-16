@@ -25,9 +25,10 @@ article img {
     color: #0969da;
 }
 
-.markdown-alert-title > .octicon.octicon-info {
+.markdown-alert-title > .octicon {
     margin-right: 5px;
     margin-top: -3px;
+    fill: var(--bs-body-color);
 }
 
 .highlight {
