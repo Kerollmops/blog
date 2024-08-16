@@ -20,7 +20,7 @@ const fetchComments = async (
 }
 
 const renderComment = comment => {
-    const createdAt = new Date(comment.created_at).toLocaleString(undefined, {dateStyle: "medium"});
+    const createdAt = new Date(comment.created_at).toLocaleString('en-US', {dateStyle: "medium"});
 
     return `<div class="tu-comment">
                 <div class="tu-header">
@@ -34,7 +34,7 @@ const renderComment = comment => {
 
 const renderButton = (noComments, repoName, repoOwner, issueNumber) => {
     const text = noComments ? "Be the first to comment on GitHub" : "Join the discussion on GitHub";
-    const url = `https://github.com/${repoOwner}/${repoName}/issues/${issueNumber}`;
+    const url = `https://github.com/${repoOwner}/${repoName}/issues/${issueNumber}#issuecomment-new`;
 
     return `<a class="tu-button" href="${url}">${text}</a>`;
 }

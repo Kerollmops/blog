@@ -13,14 +13,6 @@
     margin-bottom: 4rem;
 }
 
-.tu-created-at {
-    color: var(--bs-secondary);
-}
-
-.tu-created-at a {
-    color: var(--bs-secondary);
-}
-
 .tu-comment {
     border-radius: 0.25rem;
     border: 1px solid #d0d7de;
@@ -43,6 +35,14 @@
     color: #0969da;
     font-weight: 400;
     text-decoration: none;
+}
+
+.tu-comment .tu-created-at {
+    color: var(--bs-secondary);
+}
+
+.tu-comment .tu-created-at a {
+    color: var(--bs-secondary);
 }
 
 .tu-comment a.user-mention {
