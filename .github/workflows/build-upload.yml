@@ -29,7 +29,7 @@ jobs:
       - name: Purge the CSS
         run: |
           npm install -g purgecss
-          purgecss --content 'output/*.html' --css 'output/assets/*.css' --output 'output/assets'
+          purgecss --content 'output/*.html' --css 'output/assets/{bootstrap.min,starry-night,style}.css' --output 'output/assets'
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
