@@ -29,6 +29,17 @@
     color: var(--bs-secondary);
 }
 
+.tu-comment blockquote {
+    border-left: 0.25rem solid var(--bs-secondary);
+    margin: 0 0 1rem;
+    padding: 0 1rem;
+}
+
+.tu-comment blockquote p {
+    margin: 0;
+    padding: 0;
+}
+
 .tu-header {
     align-items: center;
     display: flex;
