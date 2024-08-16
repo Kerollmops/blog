@@ -16,13 +16,9 @@ article img {
 }
 
 .markdown-alert.markdown-alert-note {
-    border-left: #0969da 0.5rem solid;
+    border-left: var(--bs-link-color) 0.5rem solid;
     padding: 0.5rem 1rem;
     margin-bottom: 2rem;
-}
-
-.markdown-alert-title {
-    color: #0969da;
 }
 
 .markdown-alert-title > .octicon {
