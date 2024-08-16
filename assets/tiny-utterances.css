@@ -1,9 +1,3 @@
-.tiny-utterances * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
-
 .tiny-utterances {
     display: flex;
     flex-direction: column;
@@ -15,26 +9,12 @@
 
 .tu-comment {
     border-radius: 0.25rem;
-    border: 1px solid #d0d7de;
-    padding: 1rem;
+    border: 1px solid var(--bs-border-color);
+    padding: 12px;
 }
 
 .tu-comment > *:last-child {
     margin-bottom: 0;
-}
-
-.tu-comment h1,
-.tu-comment h2 {
-    border-bottom: 1px solid hsla(210,18%,87%,1);
-    font-weight: 600;
-    margin: 1.5rem 0 1rem;
-    padding-bottom: 0.25rem;
-}
-
-.tu-comment a {
-    color: #0969da;
-    font-weight: 400;
-    text-decoration: none;
 }
 
 .tu-comment .tu-created-at {
@@ -45,83 +25,30 @@
     color: var(--bs-secondary);
 }
 
-.tu-comment a.user-mention {
-    color: black;
-    font-weight: 600;
-}
-
-.tu-comment a:hover {
-    color: #0969da;
-    text-decoration: underline;
-}
-
-.tu-comment a.user-mention:hover {
-    color: black;
-}
-
-.tu-comment code {
-    background-color: #f6f8fa;
-    font-family: ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace;
-    font-size: 85%;
-    padding: 0.2rem 0.4rem;
-}
-
-.tu-comment p {
-    margin-bottom: 1rem;
-}
-
-.tu-comment pre {
-    background-color: #f6f8fa;
-    border-radius: 0.25rem;
-    padding: 1rem;
-}
-
-.tu-comment ul,
-.tu-comment ol {
-    margin-bottom: 1rem;
-    padding-left: 2rem;
-}
-
-.tu-comment ul.contains-task-list {
-    list-style-type: none;
-    padding: 0;
-}
-
-.tu-comment ul.contains-task-list li {
-    padding-left: 0.25rem;
-}
-
-.tu-comment ul.contains-task-list li input {
-    margin-right: 0.25rem;
-}
-
-.tu-comment blockquote {
-    border-left: 0.25rem solid #d0d7de;
-    margin: 0 0 1rem;
-    padding: 0 1rem;
-}
-
-.tu-comment blockquote p {
-    margin: 0;
-    padding: 0;
+.tu-comment .tu-created-at a:hover {
+    color: var(--bs-secondary);
 }
 
 .tu-header {
     align-items: center;
     display: flex;
     flex-direction: row;
-    gap: 0.5rem;
+    gap: 0.3rem;
     margin-bottom: 1rem;
+}
+
+.tu-header a {
+    text-decoration: none;
+}
+
+.tu-header a:hover {
+    text-decoration: underline;
 }
 
 .tu-avatar {
     border: 1px solid gray;
     border-radius: 50%;
     width: 2rem;
-}
-
-.tu-login {
-    font-weight: bold;
 }
 
 a.tu-button {
