@@ -66,12 +66,12 @@ header.profil a {
 }
 
 article {
-    margin-bottom: 4rem;
     margin-top: 4rem;
+    margin-bottom: 2rem;
 }
 
 .vote-emojis {
-    margin-top: 2rem;
+    margin-bottom: 1rem;
 }
 
 .vote-emojis > .btn.btn-outline-secondary.vote-emoji {

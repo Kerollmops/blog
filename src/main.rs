@@ -32,7 +32,9 @@ async fn main() -> anyhow::Result<()> {
 
     // Copy the JS assets
     fs::copy("assets/script.js", "output/assets/script.js").await?;
+    fs::copy("assets/tiny-utterances.js", "output/assets/tiny-utterances.js").await?;
     fs::copy("assets/style.css", "output/assets/style.css").await?;
+    fs::copy("assets/tiny-utterances.css", "output/assets/tiny-utterances.css").await?;
     fs::copy("assets/bootstrap.min.css", "output/assets/bootstrap.min.css").await?;
     fs::copy("assets/starry-night.css", "output/assets/starry-night.css").await?;
 
@@ -138,6 +140,9 @@ async fn main() -> anyhow::Result<()> {
                 article_comments_url: issue.html_url,
                 comments_count: issue.comments,
                 reaction_counts,
+                owner: owner.to_string(),
+                repository: repo.to_string(),
+                issue_number: issue.number,
             },
         )
         .await?;
@@ -197,6 +202,9 @@ struct ArticleInList {
 struct ArticleTemplate {
     profil_picture_url: Url,
     username: String,
+    owner: String,
+    repository: String,
+    issue_number: u64,
     html_bio: String,
     publish_date: String,
     title: String,

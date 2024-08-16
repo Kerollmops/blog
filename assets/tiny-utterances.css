@@ -1,0 +1,142 @@
+.tiny-utterances * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+.tiny-utterances {
+    display: flex;
+    flex-direction: column;
+    font-family: -apple-system, BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, helvetica, Cantarell, Ubuntu, roboto, noto, arial, sans-serif;
+    font-size: 14px;
+    gap: 1rem;
+    margin-bottom: 4rem;
+}
+
+.tu-created-at {
+    color: var(--bs-secondary);
+}
+
+.tu-created-at a {
+    color: var(--bs-secondary);
+}
+
+.tu-comment {
+    border-radius: 0.25rem;
+    border: 1px solid #d0d7de;
+    padding: 1rem;
+}
+
+.tu-comment > *:last-child {
+    margin-bottom: 0;
+}
+
+.tu-comment h1,
+.tu-comment h2 {
+    border-bottom: 1px solid hsla(210,18%,87%,1);
+    font-weight: 600;
+    margin: 1.5rem 0 1rem;
+    padding-bottom: 0.25rem;
+}
+
+.tu-comment a {
+    color: #0969da;
+    font-weight: 400;
+    text-decoration: none;
+}
+
+.tu-comment a.user-mention {
+    color: black;
+    font-weight: 600;
+}
+
+.tu-comment a:hover {
+    color: #0969da;
+    text-decoration: underline;
+}
+
+.tu-comment a.user-mention:hover {
+    color: black;
+}
+
+.tu-comment code {
+    background-color: #f6f8fa;
+    font-family: ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace;
+    font-size: 85%;
+    padding: 0.2rem 0.4rem;
+}
+
+.tu-comment p {
+    margin-bottom: 1rem;
+}
+
+.tu-comment pre {
+    background-color: #f6f8fa;
+    border-radius: 0.25rem;
+    padding: 1rem;
+}
+
+.tu-comment ul,
+.tu-comment ol {
+    margin-bottom: 1rem;
+    padding-left: 2rem;
+}
+
+.tu-comment ul.contains-task-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+.tu-comment ul.contains-task-list li {
+    padding-left: 0.25rem;
+}
+
+.tu-comment ul.contains-task-list li input {
+    margin-right: 0.25rem;
+}
+
+.tu-comment blockquote {
+    border-left: 0.25rem solid #d0d7de;
+    margin: 0 0 1rem;
+    padding: 0 1rem;
+}
+
+.tu-comment blockquote p {
+    margin: 0;
+    padding: 0;
+}
+
+.tu-header {
+    align-items: center;
+    display: flex;
+    flex-direction: row;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.tu-avatar {
+    border: 1px solid gray;
+    border-radius: 50%;
+    width: 2rem;
+}
+
+.tu-login {
+    font-weight: bold;
+}
+
+a.tu-button {
+    background-color: #2da44e;
+    border-radius: 0.25rem;
+    color: white;
+    display: inline-block;
+    font-weight: 600;
+    padding: 0.5rem;
+    text-decoration: none;
+    transition: 80ms;
+    transition-property: background-color;
+    width: fit-content;
+}
+
+a.tu-button:hover {
+    background-color: #2c974b;
+}
