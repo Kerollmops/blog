@@ -86,6 +86,10 @@ article {
     letter-spacing: 0.1rem;
 }
 
+.vote-emojis > .btn.btn-outline-secondary.vote-emoji:hover {
+    background-color: var(--bs-primary-bg-subtle);
+}
+
 a.user-mention {
     text-decoration: none;
     font-weight: 600;
