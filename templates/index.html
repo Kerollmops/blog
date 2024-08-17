@@ -17,7 +17,6 @@
         </div>
     </a>
     <p class="text-center">{{ html_bio }}</p>
-    <p class="text-center">Subscribe to <a href="/atom.xml">my RSS/Atom feed</a> for the latest updates and articles.</p>
   <hr/>
 </header>
 {% endblock %}
@@ -41,4 +40,9 @@
 </ol>
 {% endblock %}
 
-{% block footer %}{% endblock %}
+{% block footer %}
+<footer>
+    <hr class="mb-3"/>
+    <p class="text-center">Subscribe to <a href="/atom.xml">my RSS/Atom feed</a> for the latest updates and articles.</p>
+</footer>
+{% endblock %}
