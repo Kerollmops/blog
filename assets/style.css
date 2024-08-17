@@ -62,7 +62,7 @@ header.profil a {
     border-radius: 10rem;
 }
 
-#symbol {
+.symbol {
     font-size: 20px;
 }
 
@@ -127,11 +127,6 @@ ol.custom > li {
     transition: 0.3s;
     padding: 5px;
     border-radius: 3px;
-}
-
-ol.custom > li:hover {
-    background-color: var(--bs-light-bg-subtle);
-    transition: 0.1s;
 }
 
 p.card-text {

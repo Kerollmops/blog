@@ -7,9 +7,11 @@ function updateTheme() {
 }
 
 document.addEventListener("DOMContentLoaded", function() {
-  var spanElement = document.querySelector("#symbol");
-  var symbols = ['&#9982;', '&#9919;'];
-  spanElement.innerHTML = symbols[(Math.random() * symbols.length) | 0];
+  var symbolElements = document.querySelectorAll(".symbol");
+  var symbols = ['&#x261C;', '&#x261E;', '&#x261F;'];
+  symbolElements.forEach(function(spanElement) {
+    spanElement.innerHTML = symbols[(Math.random() * symbols.length) | 0];
+  });
 });
 
 // Set theme on load
