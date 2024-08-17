@@ -99,6 +99,7 @@ async fn main() -> anyhow::Result<()> {
             url: url.clone(),
             publish_date: publish_date.unwrap_or(falback_date).format("%B %d, %Y").to_string(),
             comments_count: issue.comments,
+            guest_user: Some(issue.user.login.clone()).filter(|u| !u.eq_ignore_ascii_case(owner)),
         });
 
         // Everytime we fetch an article we also fetch the author real name
@@ -198,6 +199,7 @@ struct ArticleInList {
     synopsis: String,
     url: String,
     publish_date: String,
+    guest_user: Option<String>,
     comments_count: u32,
 }
 
