@@ -75,12 +75,6 @@ async fn main() -> anyhow::Result<()> {
         let url = correct_snake_case(&issue.title);
         let synopsis = synopsis(body);
 
-        articles.push(ArticleInList {
-            title: issue.title.clone(),
-            synopsis: synopsis.clone(),
-            url: url.clone(),
-        });
-
         // But we must also create the redirection HTML pages to redirect
         // from the previous names of the article.
         let events = issue_handler.list_timeline_events(issue.number).per_page(100).send().await?;
@@ -98,6 +92,14 @@ async fn main() -> anyhow::Result<()> {
                 publish_date = event.created_at;
             }
         }
+
+        articles.push(ArticleInList {
+            title: issue.title.clone(),
+            synopsis: synopsis.clone(),
+            url: url.clone(),
+            publish_date: publish_date.unwrap_or(falback_date).format("%B %d, %Y").to_string(),
+            comments_count: issue.comments,
+        });
 
         // Everytime we fetch an article we also fetch the author real name
         let author: User =
@@ -195,6 +197,8 @@ struct ArticleInList {
     title: String,
     synopsis: String,
     url: String,
+    publish_date: String,
+    comments_count: u32,
 }
 
 #[derive(Template)]

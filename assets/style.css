@@ -84,6 +84,7 @@ article {
 }
 
 .vote-emojis > .btn.btn-outline-secondary.vote-emoji:hover {
+    color: var(--bs-btn-color);
     background-color: var(--bs-primary-bg-subtle);
 }
 
@@ -106,13 +107,20 @@ footer p, .profil p {
     font-weight: 250;
 }
 
+a.article-link {
+    text-decoration: none;
+}
+
+a.article-link:hover .card-title {
+    text-decoration: underline;
+}
+
 ol.custom {
     list-style-type: none;
     padding-left: 0;
 }
 
 ol.custom > li {
-    counter-increment: customlistcounter;
     color: var(--bs-gray-500);
     margin-bottom: 4rem;
     display: inline-block;
@@ -126,17 +134,6 @@ ol.custom > li:hover {
     transition: 0.1s;
 }
 
-ol.custom > li:before {
-    content: "#" counter(customlistcounter);
-    float: left;
-    font-size: 3rem;
-    margin-right: 1rem;
-}
-
-ol.custom:first-child {
-    counter-reset: customlistcounter;
-}
-
 p.card-text {
     text-align: left;
     color: var(--bs-gray-600);
@@ -145,7 +142,7 @@ p.card-text {
 .card-title {
     color: var(--bs-body-color);
     margin-top: 0.5rem;
-    min-height: 4rem;
+    margin-bottom: 0.5rem;
 }
 
 hr {
