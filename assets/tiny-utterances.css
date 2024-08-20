@@ -33,6 +33,7 @@
     border-left: 0.25rem solid var(--bs-secondary);
     margin: 0 0 1rem;
     padding: 0 1rem;
+    color: var(--bs-secondary);
 }
 
 .tu-comment blockquote p {
