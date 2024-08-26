@@ -10,6 +10,7 @@ use octocrab::models::reactions::ReactionContent;
 use octocrab::models::timelines::Rename;
 use octocrab::params::State;
 use octocrab::{format_media_type, OctocrabBuilder};
+use regex::Captures;
 use rss::extension::atom::{AtomExtension, Link};
 use rss::{Channel, Guid, Item};
 use scraper::Html;
@@ -72,7 +73,7 @@ async fn main() -> anyhow::Result<()> {
         let falback_date = issue.created_at;
         let body = issue.body.as_ref().unwrap();
         let issue_handler = octocrab.issues(owner, repo);
-        let url = correct_snake_case(&issue.title);
+        let url = correct_dash_case(&issue.title);
         let synopsis = synopsis(body);
 
         // But we must also create the redirection HTML pages to redirect
@@ -83,8 +84,8 @@ async fn main() -> anyhow::Result<()> {
         for event in events {
             if let Some(from_title) = event.rename.and_then(extract_from_field_from_rename) {
                 create_and_write_into(
-                    format!("output/{}.html", correct_snake_case(from_title)),
-                    RedirectTemplate { redirect_url: correct_snake_case(&issue.title) },
+                    format!("output/{}.html", correct_dash_case(from_title)),
+                    RedirectTemplate { redirect_url: correct_dash_case(&issue.title) },
                 )
                 .await?;
             }
@@ -132,14 +133,16 @@ async fn main() -> anyhow::Result<()> {
         // Then we create the article HTML pages. We must do that after the redirection
         // pages to be sure to replace the final HTML page by the article.
         create_and_write_into(
-            format!("output/{}.html", correct_snake_case(&issue.title)),
+            format!("output/{}.html", correct_dash_case(&issue.title)),
             ArticleTemplate {
                 profil_picture_url,
                 username: author.name,
                 html_bio: html_bio.clone(),
                 publish_date: publish_date.unwrap_or(falback_date).format("%B %d, %Y").to_string(),
                 title: issue.title,
-                html_content: insert_table_class_to_table(issue.body_html.unwrap()),
+                html_content: insert_table_class_to_table(insert_anchor_to_headers(
+                    issue.body_html.unwrap(),
+                )),
                 article_comments_url: issue.html_url,
                 comments_count: issue.comments,
                 reaction_counts,
@@ -240,6 +243,19 @@ fn insert_table_class_to_table(html: impl AsRef<str>) -> String {
         .into_owned()
 }
 
+fn insert_anchor_to_headers(html: impl AsRef<str>) -> String {
+    regex::Regex::new(r#"<(h[234] .*)>(.*)</(h[234])>"#)
+        .unwrap()
+        .replace_all(html.as_ref(), |captures: &Captures| {
+            let header_attrs = &captures[1];
+            let header_end = &captures[3];
+            let text = &captures[2];
+            let dash_case = correct_dash_case(&captures[2]);
+            format!(r##"<{header_attrs} id="{dash_case}"><a href="#{dash_case}">{text}</a></{header_end}>"##)
+        })
+        .into_owned()
+}
+
 fn synopsis(s: impl AsRef<str>) -> String {
     let html = scraper::Html::parse_fragment(s.as_ref());
     fn get_first_html_comment(document: &Html) -> Option<&str> {
@@ -254,7 +270,7 @@ fn synopsis(s: impl AsRef<str>) -> String {
     get_first_html_comment(&html).map_or_else(String::new, ToOwned::to_owned)
 }
 
-fn correct_snake_case(s: impl AsRef<str>) -> String {
+fn correct_dash_case(s: impl AsRef<str>) -> String {
     use slice_group_by::StrGroupBy;
 
     let mut output = String::new();

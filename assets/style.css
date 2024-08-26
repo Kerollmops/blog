@@ -71,6 +71,19 @@ article {
     margin-bottom: 2rem;
 }
 
+h2:hover > a:before,
+h3:hover > a:before,
+h4:hover > a:before {
+    position: absolute;
+    margin-left: -0.8em;
+    content: '#';
+}
+
+h2 > a, h3 > a, h4 > a {
+    color: var(--bs-heading-color);
+    text-decoration: none;
+}
+
 .vote-emojis {
     margin-bottom: 1rem;
 }
