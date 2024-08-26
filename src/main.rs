@@ -1,5 +1,6 @@
 use std::env;
 use std::path::Path;
+use std::str::pattern::Pattern;
 
 use anyhow::Context;
 use askama::Template;
@@ -282,6 +283,10 @@ fn correct_dash_case(s: impl AsRef<str>) -> String {
                 output.push('-');
             }
         }
+    }
+
+    if output.chars().last() == Some('-') {
+        output.pop();
     }
 
     output
