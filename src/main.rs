@@ -244,14 +244,15 @@ fn insert_table_class_to_table(html: impl AsRef<str>) -> String {
 }
 
 fn insert_anchor_to_headers(html: impl AsRef<str>) -> String {
-    regex::Regex::new(r#"<(h[234] .*)>(.*)</(h[234])>"#)
+    regex::Regex::new(r#"<(h[234]) (.*)>(.*)</(h[234])>"#)
         .unwrap()
         .replace_all(html.as_ref(), |captures: &Captures| {
-            let header_attrs = &captures[1];
-            let header_end = &captures[3];
-            let text = &captures[2];
-            let dash_case = correct_dash_case(&captures[2]);
-            format!(r##"<{header_attrs} id="{dash_case}"><a href="#{dash_case}">{text}</a></{header_end}>"##)
+            assert_eq!(&captures[1], &captures[4]);
+            let header = &captures[1];
+            let header_attrs = &captures[2];
+            let text = &captures[3];
+            let dash_case = correct_dash_case(&captures[3]);
+            format!(r##"<{header} id="{dash_case}" {header_attrs}><a href="#{dash_case}">{text}</a></{header}>"##)
         })
         .into_owned()
 }
@@ -284,7 +285,7 @@ fn correct_dash_case(s: impl AsRef<str>) -> String {
         }
     }
 
-    if output.chars().last() == Some('-') {
+    if output.ends_with('-') {
         output.pop();
     }
 
