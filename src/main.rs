@@ -1,6 +1,5 @@
 use std::env;
 use std::path::Path;
-use std::str::pattern::Pattern;
 
 use anyhow::Context;
 use askama::Template;

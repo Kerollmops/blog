@@ -71,11 +71,10 @@ article {
     margin-bottom: 2rem;
 }
 
-h2:hover > a:before,
-h3:hover > a:before,
-h4:hover > a:before {
-    position: absolute;
-    margin-left: -0.8em;
+h2:hover > a:after,
+h3:hover > a:after,
+h4:hover > a:after {
+    margin-left: 0.2em;
     content: '#';
 }
 
