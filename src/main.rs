@@ -33,6 +33,8 @@ async fn main() -> anyhow::Result<()> {
 
     // Copy the JS assets
     fs::copy("assets/script.js", "output/assets/script.js").await?;
+    fs::copy("assets/balls.js", "output/assets/balls.js").await?;
+    fs::copy("assets/matter.min.js", "output/assets/matter.min.js").await?;
     fs::copy("assets/tiny-utterances.js", "output/assets/tiny-utterances.js").await?;
     fs::copy("assets/style.css", "output/assets/style.css").await?;
     fs::copy("assets/tiny-utterances.css", "output/assets/tiny-utterances.css").await?;
