@@ -24,14 +24,20 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
+  let removedStripe = 100;
+  let ratio = h / w;
+
+  Render.lookAt(render, {
+    min: { x: 0, y: 0 },
+    max: { x: w - removedStripe, y: h - (removedStripe * ratio) }
+  });
+
   engine.world.gravity.x = -0.35;
   engine.world.gravity.y = -0.5;
 
   const boundariesOptions = {
     isStatic: true,
-    render: {
-      visible: false
-    }
+    render: { visible: false }
   };
 
   const boundaries = [
@@ -48,11 +54,14 @@ document.addEventListener("DOMContentLoaded", function () {
   Composite.add(engine.world, boundaries);
 
   function spawnComposite(isCube) {
+    const size = 6;
+
     const colors = ['#ff5caa','#4f55e3','#ff4e62','#ad6de6'];
     const yellow = '#ffdf00';
-    const spawnX = 2 * (w / 3) + Math.random() * (w / 3);
 
-    const spawnY = h - 50;
+    const spawnX = w - Math.random() * (removedStripe / 2);
+    const spawnY = h - removedStripe * ratio;
+
     const color = isCube ? yellow : colors[Math.floor(Math.random() * colors.length)];
     const options = {
       label: 'ball',
@@ -62,9 +71,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let object;
     if (isCube) {
-      object = Bodies.rectangle(spawnX, spawnY, 8 * 2, 8 * 2, options);
+      object = Bodies.rectangle(spawnX, spawnY, size * 2, size * 2, options);
     } else {
-      object = Bodies.circle(spawnX, spawnY, 8, options);
+      object = Bodies.circle(spawnX, spawnY, size, options);
     }
     Composite.add(engine.world, object);
   }
