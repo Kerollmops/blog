@@ -6,14 +6,6 @@ function updateTheme() {
   document.querySelector("html").setAttribute("data-bs-theme", colorMode);
 }
 
-document.addEventListener("DOMContentLoaded", function() {
-  var symbolElements = document.querySelectorAll(".symbol");
-  var symbols = ['&#x261C;', '&#x261E;', '&#x261F;'];
-  symbolElements.forEach(function(spanElement) {
-    spanElement.innerHTML = symbols[(Math.random() * symbols.length) | 0];
-  });
-});
-
 // Set theme on load
 updateTheme()
 
