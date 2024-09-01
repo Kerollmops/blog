@@ -60,7 +60,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const yellow = '#ffdf00';
 
     const spawnX = w - Math.random() * (removedStripe / 2);
-    const spawnY = h - removedStripe * ratio;
+    const spawnY = h - Math.random() * (h / 2) - removedStripe * ratio;
 
     const color = isCube ? yellow : colors[Math.floor(Math.random() * colors.length)];
     const options = {
