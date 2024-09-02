@@ -1,3 +1,12 @@
+const loadImage = (url, onSuccess, onError) => {
+  const img = new Image();
+  img.onload = () => {
+    onSuccess(img.src);
+  };
+  img.onerror = onError();
+  img.src = url;
+};
+
 document.addEventListener("DOMContentLoaded", function () {
   var Engine = Matter.Engine,
     Render = Matter.Render,
@@ -53,40 +62,33 @@ document.addEventListener("DOMContentLoaded", function () {
 
   Composite.add(engine.world, boundaries);
 
-  function spawnComposite(isCube) {
-    const size = 6;
-
-    const colors = ['#ff5caa','#4f55e3','#ff4e62','#ad6de6'];
-    const yellow = '#ffdf00';
-
+  function spawnComposite(image_url) {
+    const size = 8;
+    const scale = 0.18;
     const spawnX = w - Math.random() * (removedStripe / 2);
     const spawnY = h - Math.random() * (h / 2) - removedStripe * ratio;
 
-    const color = isCube ? yellow : colors[Math.floor(Math.random() * colors.length)];
     const options = {
-      label: 'ball',
+      label: 'key',
       restitution: 0.8,
-      render: { fillStyle: color }
+      render: { sprite: { texture: image_url, xScale: scale, yScale: scale } }
     };
 
-    let object;
-    if (isCube) {
-      object = Bodies.rectangle(spawnX, spawnY, size * 2, size * 2, options);
-    } else {
-      object = Bodies.circle(spawnX, spawnY, size, options);
-    }
+    const object = Bodies.rectangle(spawnX, spawnY, size * 2, size * 2, options);
     Composite.add(engine.world, object);
   }
 
-  const count = 70;
-  const spawnDurationMs = 3000;
-  const cubeGenerated = false;
-  for (let i = 0; i < count; i++) {
-    setTimeout(() => {
-      let isCube = (i == Math.floor(count / 2));
-      spawnComposite(isCube);
-    }, i * (spawnDurationMs / count));
-  }
+    const count = Math.random() >= 0.5 ? 3 : 4;
+    const spawnDurationMs = 1000;
+    const keys = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+
+    for (let i = 0; i < count; i++) {
+      const key = keys[Math.floor(Math.random() * keys.length)];
+      const url = `/assets/keys/${key}.png`
+      loadImage(url, (image_url) => {
+        setTimeout(() => spawnComposite(image_url), i * (spawnDurationMs / count));
+      }, (e) => console.log(e));
+    }
 
   // run the renderer
   Render.run(render);
