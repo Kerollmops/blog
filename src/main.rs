@@ -30,6 +30,7 @@ async fn main() -> anyhow::Result<()> {
     fs::remove_dir_all("output").await.or_else(ignore_not_found)?;
     fs::create_dir("output").await?;
     fs::create_dir("output/assets").await?;
+    fs::create_dir("output/assets/keys").await?;
 
     // Copy the JS assets
     fs::copy("assets/script.js", "output/assets/script.js").await?;
