@@ -80,7 +80,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const count = Math.random() >= 0.5 ? 3 : 4;
     const spawnDurationMs = 1000;
-    const keys = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+    const keys = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
     for (let i = 0; i < count; i++) {
       const key = keys[Math.floor(Math.random() * keys.length)];
