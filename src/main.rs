@@ -33,6 +33,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Copy the JS assets
     fs::copy("assets/script.js", "output/assets/script.js").await?;
+    fs::copy("assets/script.js", "output/assets/script.js").await?;
     fs::copy("assets/balls.js", "output/assets/balls.js").await?;
     fs::copy("assets/matter.min.js", "output/assets/matter.min.js").await?;
     fs::copy("assets/tiny-utterances.js", "output/assets/tiny-utterances.js").await?;
@@ -40,6 +41,13 @@ async fn main() -> anyhow::Result<()> {
     fs::copy("assets/tiny-utterances.css", "output/assets/tiny-utterances.css").await?;
     fs::copy("assets/bootstrap.min.css", "output/assets/bootstrap.min.css").await?;
     fs::copy("assets/starry-night.css", "output/assets/starry-night.css").await?;
+
+    // Copy the keys assets
+    for key in ('A'..='Z').chain('0'..='9') {
+        let src = format!("assets/keys/{key}.png");
+        let dst = format!("output/assets/keys/{key}.png");
+        fs::copy(src, dst).await?;
+    }
 
     // force GitHub to return HTML content
     let octocrab = if let Ok(token) = env::var("GITHUB_TOKEN") {
