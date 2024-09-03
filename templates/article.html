@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 
 {% block title %}{{ title }}{% endblock %}
+{% block description %}{{ description }}{% endblock %}
+{% block url %}{{ url }}{% endblock %}
+{% block preview_url %}{{ preview_url }}{% endblock %}
 
 {% block head %}
   <meta name="description" content="Article by {{ username }} titled: {{ title }}.">

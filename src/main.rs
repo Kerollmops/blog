@@ -30,6 +30,7 @@ async fn main() -> anyhow::Result<()> {
     fs::remove_dir_all("output").await.or_else(ignore_not_found)?;
     fs::create_dir("output").await?;
     fs::create_dir("output/assets").await?;
+    fs::create_dir("output/previews").await?;
     fs::create_dir("output/assets/keys").await?;
 
     // Copy the JS assets
@@ -64,10 +65,10 @@ async fn main() -> anyhow::Result<()> {
     let html_bio_owner = linkify_at_references(user.bio);
 
     let repository = octocrab::instance().repos(owner, repo).get().await?;
-    let homepage_url = repository
+    let homepage = repository
         .homepage
         .context("You must set the homepage URL of your blog on the repository")?;
-    let homepage_url = Url::parse(&homepage_url)?;
+    let homepage_url = Url::parse(&homepage)?;
 
     let page = octocrab
         .issues(owner, repo)
@@ -94,7 +95,7 @@ async fn main() -> anyhow::Result<()> {
         let mut publish_date = None;
         for event in events {
             if let Some(from_title) = event.rename.and_then(extract_from_field_from_rename) {
-                create_and_write_into(
+                create_and_write_template_into(
                     format!("output/{}.html", correct_dash_case(from_title)),
                     RedirectTemplate { redirect_url: correct_dash_case(&issue.title) },
                 )
@@ -127,7 +128,7 @@ async fn main() -> anyhow::Result<()> {
             guid: Some(Guid { value: homepage_url.join(&url)?.to_string(), permalink: true }),
             title: Some(issue.title.clone()),
             link: Some(homepage_url.join(&url)?.to_string()),
-            description: Some(synopsis),
+            description: Some(synopsis.clone()),
             author: Some(format!("{email_address} ({})", author.name)),
             atom_ext: Some(AtomExtension {
                 links: vec![Link {
@@ -141,16 +142,19 @@ async fn main() -> anyhow::Result<()> {
             ..Default::default()
         });
 
-        // Then we create the article HTML pages. We must do that after the redirection
+        // We create the article HTML pages. We must do that after the redirection
         // pages to be sure to replace the final HTML page by the article.
-        create_and_write_into(
-            format!("output/{}.html", correct_dash_case(&issue.title)),
+        let post_dash_case = correct_dash_case(&issue.title);
+        create_and_write_template_into(
+            format!("output/{post_dash_case}.html"),
             ArticleTemplate {
                 profil_picture_url,
-                username: author.name,
+                username: author.name.clone(),
                 html_bio: html_bio.clone(),
+                url: format!("{homepage}/{post_dash_case}"),
                 publish_date: publish_date.unwrap_or(falback_date).format("%B %d, %Y").to_string(),
-                title: issue.title,
+                title: issue.title.clone(),
+                description: synopsis,
                 html_content: insert_table_class_to_table(insert_anchor_to_headers(
                     issue.body_html.unwrap(),
                 )),
@@ -160,15 +164,30 @@ async fn main() -> anyhow::Result<()> {
                 owner: owner.to_string(),
                 repository: repo.to_string(),
                 issue_number: issue.number,
+                preview_url: format!("{homepage}/preview/{post_dash_case}.png"),
             },
         )
         .await?;
+
+        // Generate the preview
+        let preview_png = tokio::task::block_in_place(|| {
+            let preview = blog::Preview {
+                username: author.name,
+                publish_date: publish_date.unwrap_or(falback_date).format("%B %d, %Y").to_string(),
+                title: issue.title.clone(),
+                comment_count: issue.comments,
+            };
+            preview.generate_png().unwrap()
+        });
+
+        // And write it to disk
+        tokio::fs::write(format!("output/preview/{post_dash_case}.png"), preview_png).await?;
     }
 
     let mut profil_picture_url = user.avatar_url;
     profil_picture_url.set_query(Some("v=4&s=100"));
 
-    create_and_write_into(
+    create_and_write_template_into(
         "output/index.html",
         IndexTemplate {
             profil_picture_url,
@@ -226,10 +245,13 @@ struct ArticleTemplate {
     repository: String,
     issue_number: u64,
     html_bio: String,
+    url: String,
     publish_date: String,
     title: String,
+    description: String,
     html_content: String,
     article_comments_url: Url,
+    preview_url: String,
     comments_count: u32,
     reaction_counts: ReactionCounts,
 }
@@ -337,7 +359,7 @@ async fn collect_reactions(
     Ok(output)
 }
 
-async fn create_and_write_into(
+async fn create_and_write_template_into(
     path: impl AsRef<Path>,
     template: impl Template,
 ) -> anyhow::Result<()> {

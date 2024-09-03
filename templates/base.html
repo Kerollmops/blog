@@ -12,7 +12,24 @@
     <link href="assets/bootstrap.min.css" rel="stylesheet">
     <link href="assets/style.css" rel="stylesheet">
     <link href="assets/tiny-utterances.css" rel="stylesheet">
+
+    <!-- Primary Meta Tags -->
     <title>{% block title %}{% endblock %}</title>
+    <meta name="title" content="{% block title %}{% endblock %}" />
+    <meta name="description" content="{% block description %}{% endblock %}" />
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="{% block url %}{% endblock %}" />
+    <meta property="og:title" content="{% block title %}{% endblock %}" />
+    <meta property="og:description" content="{% block description %}{% endblock %}" />
+    <meta property="og:image" content="{% block preview_url %}{% endblock %}" />
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="{% block title %}{% endblock %}" />
+    <meta property="twitter:title" content="{% block title %}{% endblock %}" />
+    <meta property="twitter:description" content="{% block description %}{% endblock %}" />
+    <meta property="twitter:image" content="{% block preview_url %}{% endblock %}" />
+
     {% block head %}{% endblock %}
   </head>
   <body>
