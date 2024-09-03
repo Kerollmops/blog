@@ -38,10 +38,10 @@ impl Preview {
     pub fn generate_png(self) -> anyhow::Result<Vec<u8>> {
         let Preview { username, publish_date, title, comment_count } = self;
 
-        let comments_text = if comment_count > 1 {
-            format!("{comment_count} comments")
-        } else {
+        let comments_text = if comment_count == 1 {
             format!("{comment_count} comment")
+        } else {
+            format!("{comment_count} comments")
         };
 
         let title_spans = cut_title(&title);
