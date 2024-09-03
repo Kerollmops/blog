@@ -1,0 +1,52 @@
+<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+  <!-- try it on: https://www.svgviewer.dev -->
+
+  <!-- background -->
+  <rect width="100%" height="100%" fill="white"/>
+
+  <!-- user picture -->
+  <!-- TODO round it -->
+  <image href="https://github.com/Kerollmops.png" x="50%" y="40" width="96" height="96" transform="translate(-48)" />
+
+  <!-- published text -->
+  <text fill="#586069" text-anchor="middle" dominant-baseline="middle" font-family="Inter" font-size="28">
+    <tspan x="50%" y="183.227">Published by </tspan>
+    <tspan font-weight="bold">{{ username }}</tspan>
+    <tspan> on </tspan>
+    <tspan font-style="italic">{{ publish_date }}</tspan>
+  </text>
+
+  <!--title-->
+  <text y="45%" fill="#2F363D" text-anchor="middle" dominant-baseline="middle" font-family="Inter" font-size="64" font-weight="bold">
+      {% match title_spans %}
+        {% when One with (first) %}
+          <!-- solo: 1.5em -->
+          <tspan x="50%" dy="1.5em">{{ first }}</tspan>
+        {% when Two with (first, second) %}
+          <!-- two: 1em+1.2em -->
+          <tspan x="50%" dy="1em">{{ first }}</tspan>
+          <tspan x="50%" dy="1.2em">{{ second }}</tspan>
+        {% when Three with (first, second, third) %}
+          <!-- three: 0.5em+1.2em+1.2em -->
+          <tspan x="50%" dy="0.5em">{{ first }}</tspan>
+          <tspan x="50%" dy="1.2em">{{ second }}</tspan>
+          <tspan x="50%" dy="1.2em">{{ third }}</tspan>
+      {% endmatch %}
+  </text>
+
+  <!-- url -->
+  <text fill="#586069" font-family="Inter" font-size="28" font-weight="500">
+    <tspan x="40" y="590">blog.kerollmops.com</tspan>
+  </text>
+
+  <!-- comments -->
+  <text fill="#586069" font-family="Inter" font-size="28">
+    <tspan x="1000" y="590">{{ comments_text }}</tspan>
+  </text>
+
+  <!-- comments icon -->
+  <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" x="945" y="563" fill="#586069" viewBox="0 0 16 16">
+    <path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4.414A2 2 0 0 0 3 11.586l-2 2V2a1 1 0 0 1 1-1zM2 0a2 2 0 0 0-2 2v12.793a.5.5 0 0 0 .854.353l2.853-2.853A1 1 0 0 1 4.414 12H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2z"/>
+    <path d="M7.066 4.76A1.665 1.665 0 0 0 4 5.668a1.667 1.667 0 0 0 2.561 1.406c-.131.389-.375.804-.777 1.22a.417.417 0 1 0 .6.58c1.486-1.54 1.293-3.214.682-4.112zm4 0A1.665 1.665 0 0 0 8 5.668a1.667 1.667 0 0 0 2.561 1.406c-.131.389-.375.804-.777 1.22a.417.417 0 1 0 .6.58c1.486-1.54 1.293-3.214.682-4.112z"/>
+  </svg>
+</svg>
