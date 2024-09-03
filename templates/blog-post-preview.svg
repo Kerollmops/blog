@@ -1,6 +1,12 @@
 <svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
   <!-- try it on: https://www.svgviewer.dev -->
 
+  <!-- keys -->
+  <image href="https://blog.kerollmops.com/assets/keys/R.png" x="64" y="6" width="82" height="82" transform="rotate(-12.5953 64.4727 6.45312)" />
+  <image href="https://blog.kerollmops.com/assets/keys/K.png" x="-18" y="20" width="82" height="82" transform="rotate(-26.2455 -18 20.4844)" />
+  <image href="https://blog.kerollmops.com/assets/keys/E.png" x="-10" y="67" width="82" height="82" transform="rotate(-5.26745 -10.5294 67.04)" />
+  <image href="https://blog.kerollmops.com/assets/keys/O.png" x="54" y="45" width="82" height="82" transform="rotate(0.741325 54.7753 45.2002)" />
+
   <!-- background -->
   <rect width="100%" height="100%" fill="white"/>
 
