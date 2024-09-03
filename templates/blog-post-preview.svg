@@ -1,4 +1,4 @@
-<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+<svg width="{{ crate::WIDTH }}" height="{{ crate::HEIGHT }}" xmlns="http://www.w3.org/2000/svg">
   <!-- try it on: https://www.svgviewer.dev -->
 
   <!-- background -->
@@ -11,8 +11,10 @@
   <image href="https://blog.kerollmops.com/assets/keys/O.png" x="54" y="45" width="82" height="82" transform="rotate(0.741325 54.7753 45.2002)" />
 
   <!-- user picture -->
-  <!-- TODO round it -->
-  <image href="https://github.com/{{ username }}.png" x="50%" y="40" width="96" height="96" transform="translate(-48)" />
+  <mask id="roundedImage">
+    <rect x="50%" y="40" width="96" height="96" rx="48" ry="48" fill="white" />
+  </mask>
+  <image href="https://github.com/{{ username }}.png" x="50%" y="40" width="96" height="96" mask="url(#roundedImage)" />
 
   <!-- published text -->
   <text fill="#586069" text-anchor="middle" dominant-baseline="middle" font-family="Inter" font-size="28">
