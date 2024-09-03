@@ -192,7 +192,9 @@ async fn main() -> anyhow::Result<()> {
         IndexTemplate {
             profil_picture_url,
             username: user.name.clone(),
+            description: "A chill and fun blog about Rust stuuf and the journey of building my company: Meilisearch".to_string(),
             html_bio: html_bio_owner,
+            url: homepage_url.clone(),
             articles,
         },
     )
@@ -223,6 +225,8 @@ struct User {
 struct IndexTemplate {
     profil_picture_url: Url,
     username: String,
+    description: String,
+    url: Url,
     html_bio: String,
     articles: Vec<ArticleInList>,
 }
