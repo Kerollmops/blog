@@ -1,4 +1,6 @@
 .DS_Store
 /target
 /output
-preview.[png,webp,svg]
+preview.png
+preview.webp
+preview.svg
