@@ -30,7 +30,7 @@ async fn main() -> anyhow::Result<()> {
     fs::remove_dir_all("output").await.or_else(ignore_not_found)?;
     fs::create_dir("output").await?;
     fs::create_dir("output/assets").await?;
-    fs::create_dir("output/previews").await?;
+    fs::create_dir("output/preview").await?;
     fs::create_dir("output/assets/keys").await?;
 
     // Copy the JS assets
@@ -151,7 +151,7 @@ async fn main() -> anyhow::Result<()> {
                 profil_picture_url,
                 username: author.name.clone(),
                 html_bio: html_bio.clone(),
-                url: format!("{homepage}/{post_dash_case}"),
+                url: format!("{homepage}{post_dash_case}"),
                 publish_date: publish_date.unwrap_or(falback_date).format("%B %d, %Y").to_string(),
                 title: issue.title.clone(),
                 description: synopsis,
@@ -164,7 +164,7 @@ async fn main() -> anyhow::Result<()> {
                 owner: owner.to_string(),
                 repository: repo.to_string(),
                 issue_number: issue.number,
-                preview_url: format!("{homepage}/preview/{post_dash_case}.png"),
+                preview_url: format!("{homepage}preview/{post_dash_case}.png"),
             },
         )
         .await?;
@@ -172,7 +172,7 @@ async fn main() -> anyhow::Result<()> {
         // Generate the preview
         let preview_png = tokio::task::block_in_place(|| {
             let preview = blog::Preview {
-                username: author.name,
+                username: issue.user.login,
                 publish_date: publish_date.unwrap_or(falback_date).format("%B %d, %Y").to_string(),
                 title: issue.title.clone(),
                 comment_count: issue.comments,

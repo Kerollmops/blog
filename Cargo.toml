@@ -3,6 +3,7 @@ name = "blog"
 description = "A small tool that generate the static pages of my blog"
 version = "0.1.0"
 edition = "2021"
+default-run = "blog"
 
 [dependencies]
 anyhow = "1.0.72"
