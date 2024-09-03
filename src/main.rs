@@ -34,6 +34,7 @@ async fn main() -> anyhow::Result<()> {
     fs::create_dir("output/assets/keys").await?;
 
     // Copy the JS assets
+    fs::copy("assets/preview/homepage.png", "output/preview/homepage.png").await?;
     fs::copy("assets/script.js", "output/assets/script.js").await?;
     fs::copy("assets/script.js", "output/assets/script.js").await?;
     fs::copy("assets/balls.js", "output/assets/balls.js").await?;
@@ -192,9 +193,10 @@ async fn main() -> anyhow::Result<()> {
         IndexTemplate {
             profil_picture_url,
             username: user.name.clone(),
-            description: "A chill and fun blog about Rust stuuf and the journey of building my company: Meilisearch".to_string(),
+            description: "A chill and fun blog about Rust stuff and the journey of building my company: Meilisearch".to_string(),
             html_bio: html_bio_owner,
             url: homepage_url.clone(),
+            preview_url: format!("{homepage}preview/homepage.png"),
             articles,
         },
     )
@@ -227,6 +229,7 @@ struct IndexTemplate {
     username: String,
     description: String,
     url: Url,
+    preview_url: String,
     html_bio: String,
     articles: Vec<ArticleInList>,
 }
