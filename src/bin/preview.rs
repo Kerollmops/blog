@@ -5,6 +5,7 @@ use anyhow::Context;
 use askama::Template;
 use resvg::render;
 use tiny_skia::{Pixmap, Transform};
+use unicode_segmentation::UnicodeSegmentation;
 use usvg::{ImageHrefResolver, ImageKind, Options, Tree};
 
 use crate::Spans::*;
@@ -41,7 +42,7 @@ fn main() -> anyhow::Result<()> {
         format!("{comments_count} comment")
     };
 
-    let title_spans = Spans::One(title);
+    let title_spans = cut_title(&title);
     let template = PreviewTemplate { username, publish_date, title_spans, comments_text };
     let svg = template.to_string();
 
@@ -84,4 +85,37 @@ fn main() -> anyhow::Result<()> {
     fs::write("preview.png", pixmap.encode_png()?)?;
 
     Ok(())
+}
+
+fn cut_title(title: &str) -> Spans {
+    const MAX_LINE_CHARS: usize = 28;
+
+    let mut acc = 0;
+    let mut previous_stop = 0;
+    let mut parts = Vec::new();
+
+    for (indice, word) in title.split_word_bound_indices() {
+        if acc + word.len() > MAX_LINE_CHARS {
+            parts.push(&title[previous_stop..indice]);
+            previous_stop = indice;
+            acc = 0;
+        } else {
+            acc += word.len();
+        }
+    }
+
+    let remaining = &title[previous_stop..];
+    if !remaining.is_empty() {
+        parts.push(remaining);
+    }
+
+    match parts.len() {
+        1 => Spans::One(parts[0].to_string()),
+        2 => Spans::Two(parts[0].to_string(), parts[1].to_string()),
+        _ => {
+            let ellipsis = if parts.len() > 3 { "..." } else { "" };
+            let part = format!("{}{ellipsis}", parts[2]);
+            Spans::Three(parts[0].to_string(), parts[1].to_string(), part)
+        }
+    }
 }
