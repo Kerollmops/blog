@@ -98,4 +98,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // run the engine
   Runner.run(runner, engine);
+
+  const stopAfter = 30000;
+  setTimeout(() => {
+    Render.stop(render);
+    Runner.stop(runner);
+  }, stopAfter);
 });
