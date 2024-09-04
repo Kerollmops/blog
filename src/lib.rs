@@ -84,7 +84,7 @@ impl Preview {
 }
 
 fn cut_title(title: &str) -> Spans {
-    const MAX_LINE_CHARS: usize = 28;
+    const MAX_LINE_CHARS: usize = 26;
 
     let mut acc = 0;
     let mut previous_stop = 0;
