@@ -153,6 +153,12 @@ hr {
     margin: 0 auto;
 }
 
+.table {
+    display: block;
+    overflow: auto;
+    border-collapse: collapse;
+}
+
 #ballsCanvas {
     position: absolute;
     top: 0;
