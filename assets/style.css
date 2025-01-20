@@ -1,12 +1,23 @@
 .container {
-  max-width: 720px;
+    max-width: 720px;
 }
 
 h1 {
-  font-weight: 700;
+    font-weight: 700;
 }
 
-.h1, .h2, .h3, .h4, .h5, .h6, h1, h2, h3, h4, h5, h6 {
+.h1,
+.h2,
+.h3,
+.h4,
+.h5,
+.h6,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
     margin-top: 2.5rem;
     margin-bottom: 1rem;
 }
@@ -17,6 +28,12 @@ article img {
 
 .markdown-alert.markdown-alert-note {
     border-left: var(--bs-link-color) 0.5rem solid;
+    padding: 0.5rem 1rem;
+    margin-bottom: 2rem;
+}
+
+.markdown-alert.markdown-alert-warning {
+    border-left: #b35b00 0.5rem solid;
     padding: 0.5rem 1rem;
     margin-bottom: 2rem;
 }
@@ -40,12 +57,12 @@ article img {
 }
 
 header.profil {
-  margin-top: 3rem;
-  margin-bottom: 2.5rem;
+    margin-top: 3rem;
+    margin-bottom: 2.5rem;
 }
 
 header.profil a {
-  text-decoration: none;
+    text-decoration: none;
 }
 
 .profil .long-text {
@@ -71,10 +88,12 @@ h2:hover > a:after,
 h3:hover > a:after,
 h4:hover > a:after {
     margin-left: 0.2em;
-    content: '#';
+    content: "#";
 }
 
-h2 > a, h3 > a, h4 > a {
+h2 > a,
+h3 > a,
+h4 > a {
     color: var(--bs-heading-color);
     text-decoration: none;
 }
@@ -110,7 +129,8 @@ footer {
     margin-bottom: 4rem;
 }
 
-footer p, .profil p {
+footer p,
+.profil p {
     color: var(--bs-gray);
     font-weight: 250;
 }
@@ -169,6 +189,9 @@ hr {
 }
 
 :root {
-    --bs-font-sans-serif: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-    --bs-font-monospace: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+    --bs-font-sans-serif: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+        "Segoe UI Symbol";
+    --bs-font-monospace: "SFMono-Regular", Consolas, "Liberation Mono", Menlo,
+        Courier, monospace;
 }
