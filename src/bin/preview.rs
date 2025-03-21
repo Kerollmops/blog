@@ -2,6 +2,8 @@ use std::fs;
 
 use blog::Preview;
 
+/// Generates an image preview with the publkish date, title and comment count.
+/// Stores it in the preview.png image.
 fn main() -> anyhow::Result<()> {
     let args: Vec<String> = std::env::args().collect();
     let username = args.get(1).expect("missing `username` (first) argument").clone();
