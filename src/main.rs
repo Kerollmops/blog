@@ -1,5 +1,7 @@
+use std::collections::HashMap;
 use std::env;
-use std::path::Path;
+use std::hash::{BuildHasher, BuildHasherDefault, DefaultHasher};
+use std::path::{Path, PathBuf};
 
 use anyhow::Context;
 use askama::Template;
@@ -54,11 +56,13 @@ async fn main() -> anyhow::Result<()> {
 
     // force GitHub to return HTML content
     let octocrab = if let Ok(token) = env::var("GITHUB_TOKEN") {
+        eprintln!("I am authenticated!");
         OctocrabBuilder::default()
             .add_header(ACCEPT, format_media_type("full"))
             .add_header(AUTHORIZATION, format!("Bearer {}", token))
             .build()?
     } else {
+        eprintln!("I am not authenticated!");
         OctocrabBuilder::default().add_header(ACCEPT, format_media_type("full")).build()?
     };
 
@@ -82,12 +86,26 @@ async fn main() -> anyhow::Result<()> {
 
     let mut items = Vec::new();
     let mut articles = Vec::new();
-    for issue in page {
+    for mut issue in page {
         let falback_date = issue.created_at;
         let body = issue.body.as_ref().unwrap();
         let issue_handler = octocrab.issues(owner, repo);
         let url = correct_dash_case(&issue.title);
         let synopsis = synopsis(body);
+
+        if let Some(html) = issue.body_html {
+            let (urls_to_path, html) = replace_img_srcs_with_hashes(html);
+            issue.body_html = Some(html);
+
+            let mut body_bytes = Vec::new();
+            std::fs::create_dir_all("output/assets/images")?;
+            for (url, path) in urls_to_path {
+                body_bytes.clear();
+                let resp = ureq::get(&url).call()?;
+                resp.into_reader().read_to_end(&mut body_bytes)?;
+                std::fs::write(Path::new("output").join(path), &body_bytes)?;
+            }
+        }
 
         // But we must also create the redirection HTML pages to redirect
         // from the previous names of the article.
@@ -295,6 +313,42 @@ fn insert_anchor_to_headers(html: impl AsRef<str>) -> String {
             format!(r##"<{header} id="{dash_case}" {header_attrs}><a href="#{dash_case}">{text}</a></{header}>"##)
         })
         .into_owned()
+}
+
+fn replace_img_srcs_with_hashes(html: impl AsRef<str>) -> (HashMap<String, PathBuf>, String) {
+    use kuchiki::parse_html;
+    use kuchiki::traits::*;
+
+    let mut urls_to_local_path = HashMap::new();
+    let document = parse_html().one(html.as_ref());
+
+    for a_element in document.select("a > img").unwrap() {
+        let a_node = a_element.as_node().parent().unwrap();
+        let a_element_ref = a_node.as_element().unwrap();
+        let img_element_ref = a_element.as_node().as_element().unwrap();
+        let img_src =
+            img_element_ref.attributes.borrow().get("src").map(|s| s.to_string()).unwrap();
+
+        let local_path = hash_path_from_url(&img_src);
+        urls_to_local_path.insert(img_src.to_string(), local_path.clone());
+        a_element_ref.attributes.borrow_mut().insert("href", local_path.display().to_string());
+        img_element_ref.attributes.borrow_mut().insert("src", local_path.display().to_string());
+    }
+
+    (urls_to_local_path, document.to_string())
+}
+
+fn hash_path_from_url(url: impl AsRef<str>) -> PathBuf {
+    let hasher = BuildHasherDefault::<DefaultHasher>::default();
+    let hash = hasher.hash_one(url.as_ref());
+    let url = Url::parse(url.as_ref()).unwrap();
+    let url_path = url.path();
+    let path = PathBuf::new().join("assets").join("images").join(format!("{hash:x}"));
+    if let Some(extension) = Path::new(url_path).extension() {
+        path.with_extension(extension.to_str().unwrap())
+    } else {
+        path
+    }
 }
 
 fn synopsis(s: impl AsRef<str>) -> String {

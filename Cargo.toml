@@ -10,6 +10,7 @@ anyhow = "1.0.72"
 askama = "0.12.0"
 big_s = "1.0.2"
 http = "0.2.9"
+kuchiki = "0.8.1"
 octocrab = "0.32.0"
 regex = { version = "1.10.2", default-features = false, features = ["unicode-perl"] }
 resvg = { version = "0.43.0", default-features = false, features = ["image-webp", "memmap-fonts", "raster-images", "text"] }
