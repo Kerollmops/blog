@@ -1,9 +1,6 @@
 name: Build and Upload to gh-pages
 
 on:
-  schedule:
-    # Runs this CI weekly to avoid broken images due to GitHub cache invalidation
-    - cron: '0 0 * * 0'
   pull_request:
   push:
     branches:
