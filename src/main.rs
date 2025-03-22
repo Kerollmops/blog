@@ -344,10 +344,9 @@ fn hash_path_from_url(url: impl AsRef<str>) -> PathBuf {
     let url = Url::parse(url.as_ref()).unwrap();
     let url_path = url.path();
     let path = PathBuf::new().join("assets").join("images").join(format!("{hash:x}"));
-    if let Some(extension) = Path::new(url_path).extension() {
-        path.with_extension(extension.to_str().unwrap())
-    } else {
-        path
+    match Path::new(url_path).extension() {
+        Some(extension) => path.with_extension(extension.to_str().unwrap()),
+        None => path.with_extension("png"),
     }
 }
 
