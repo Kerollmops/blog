@@ -24,7 +24,7 @@
 
 {% block content %}
     <p class="text-center">
-        <small class="text-body-secondary"><i>{{ publish_date }}</i> — <a href="{{ article_comments_url }}">{{ comments_count }} comments</a></small>
+        <small class="text-body-secondary"><i>{{ publish_date }}</i> — <a href="https://github.com/{{ owner }}/{{ repository }}/issues/{{ issue_number }}#comment-composer-heading">{{ comments_count }} comments</a></small>
     </p>
     <article>
         <h1 class="mb-4 text-center">{{ title }}</h1>
@@ -33,38 +33,38 @@
     </article>
 
     <div class="vote-emojis">
-    <a class="btn btn-outline-secondary vote-emoji" href="{{ article_comments_url }}" role="button">🙂 ✚</a>
+    <a class="btn btn-outline-secondary vote-emoji" href="https://github.com/{{ owner }}/{{ repository }}/issues/{{ issue_number }}#comment-composer-heading" role="button">🙂 ✚</a>
 
     {% if reaction_counts.plus_one != 0 %}
-    <a class="btn btn-outline-secondary vote-emoji" href="{{ article_comments_url }}" role="button">👍 {{ reaction_counts.plus_one }}</a>
+    <a class="btn btn-outline-secondary vote-emoji" href="https://github.com/{{ owner }}/{{ repository }}/issues/{{ issue_number }}#comment-composer-heading" role="button">👍 {{ reaction_counts.plus_one }}</a>
     {% endif %}
 
     {% if reaction_counts.minus_one != 0 %}
-        <a class="btn btn-outline-secondary vote-emoji" href="{{ article_comments_url }}" role="button">👎 {{ reaction_counts.minus_one }}</a>
+        <a class="btn btn-outline-secondary vote-emoji" href="https://github.com/{{ owner }}/{{ repository }}/issues/{{ issue_number }}#comment-composer-heading" role="button">👎 {{ reaction_counts.minus_one }}</a>
     {% endif %}
 
     {% if reaction_counts.laugh != 0 %}
-        <a class="btn btn-outline-secondary vote-emoji" href="{{ article_comments_url }}" role="button">😄 {{ reaction_counts.laugh }}</a>
+        <a class="btn btn-outline-secondary vote-emoji" href="https://github.com/{{ owner }}/{{ repository }}/issues/{{ issue_number }}#comment-composer-heading" role="button">😄 {{ reaction_counts.laugh }}</a>
     {% endif %}
 
     {% if reaction_counts.heart != 0 %}
-        <a class="btn btn-outline-secondary vote-emoji" href="{{ article_comments_url }}" role="button">❤️ {{ reaction_counts.heart }}</a>
+        <a class="btn btn-outline-secondary vote-emoji" href="https://github.com/{{ owner }}/{{ repository }}/issues/{{ issue_number }}#comment-composer-heading" role="button">❤️ {{ reaction_counts.heart }}</a>
     {% endif %}
 
     {% if reaction_counts.hooray != 0 %}
-        <a class="btn btn-outline-secondary vote-emoji" href="{{ article_comments_url }}" role="button">🎉 {{ reaction_counts.hooray }}</a>
+        <a class="btn btn-outline-secondary vote-emoji" href="https://github.com/{{ owner }}/{{ repository }}/issues/{{ issue_number }}#comment-composer-heading" role="button">🎉 {{ reaction_counts.hooray }}</a>
     {% endif %}
 
     {% if reaction_counts.confused != 0 %}
-        <a class="btn btn-outline-secondary vote-emoji" href="{{ article_comments_url }}" role="button">😕 {{ reaction_counts.confused }}</a>
+        <a class="btn btn-outline-secondary vote-emoji" href="https://github.com/{{ owner }}/{{ repository }}/issues/{{ issue_number }}#comment-composer-heading" role="button">😕 {{ reaction_counts.confused }}</a>
     {% endif %}
 
     {% if reaction_counts.rocket != 0 %}
-        <a class="btn btn-outline-secondary vote-emoji" href="{{ article_comments_url }}" role="button">🚀 {{ reaction_counts.rocket }}</a>
+        <a class="btn btn-outline-secondary vote-emoji" href="https://github.com/{{ owner }}/{{ repository }}/issues/{{ issue_number }}#comment-composer-heading" role="button">🚀 {{ reaction_counts.rocket }}</a>
     {% endif %}
 
     {% if reaction_counts.eyes != 0 %}
-        <a class="btn btn-outline-secondary vote-emoji" href="{{ article_comments_url }}" role="button">👀 {{ reaction_counts.eyes }}</a>
+        <a class="btn btn-outline-secondary vote-emoji" href="https://github.com/{{ owner }}/{{ repository }}/issues/{{ issue_number }}#comment-composer-heading" role="button">👀 {{ reaction_counts.eyes }}</a>
     {% endif %}
     </div>
 
@@ -74,7 +74,7 @@
         data-issue-number="{{ issue_number }}"
         data-max-comments="10">
         <a class="tu-button"
-            href="https://github.com/{{ owner }}/{{ repository }}/issues/{{ issue_number }}#issuecomment-new">
+            href="https://github.com/{{ owner }}/{{ repository }}/issues/{{ issue_number }}#comment-composer-heading">
             {{ comments_count }} comments, join the discussion
         </a>
     </div>

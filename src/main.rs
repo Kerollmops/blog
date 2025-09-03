@@ -177,7 +177,6 @@ async fn main() -> anyhow::Result<()> {
                 html_content: insert_table_class_to_table(insert_anchor_to_headers(
                     issue.body_html.unwrap(),
                 )),
-                article_comments_url: issue.html_url,
                 comments_count: issue.comments,
                 reaction_counts,
                 owner: owner.to_string(),
@@ -275,7 +274,6 @@ struct ArticleTemplate {
     title: String,
     description: String,
     html_content: String,
-    article_comments_url: Url,
     preview_url: String,
     comments_count: u32,
     reaction_counts: ReactionCounts,

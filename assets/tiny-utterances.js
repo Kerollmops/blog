@@ -34,7 +34,7 @@ const renderComment = comment => {
 
 const renderButton = (noComments, repoName, repoOwner, issueNumber) => {
   const text = noComments ? "Be the first to comment on GitHub" : "Join the discussion on GitHub";
-  const url = `https://github.com/${repoOwner}/${repoName}/issues/${issueNumber}#issuecomment-new`;
+  const url = `https://github.com/${repoOwner}/${repoName}/issues/${issueNumber}#comment-composer-heading`;
 
   return `<a class="tu-button" href="${url}">${text}</a>`;
 }
