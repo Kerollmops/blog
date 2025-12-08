@@ -7,7 +7,17 @@ on:
       - main
   issues:
     # All those event could change the blog rendering, showing/hiding content
-    types: [opened, closed, reopened, edited, deleted, labeled, unlabeled, transferred]
+    types:
+      [
+        opened,
+        closed,
+        reopened,
+        edited,
+        deleted,
+        labeled,
+        unlabeled,
+        transferred,
+      ]
 
 jobs:
   build-and-upload:
@@ -22,6 +32,7 @@ jobs:
         run: cargo run --release
         env:
           EMAIL_ADDRESS: ${{ secrets.EMAIL_ADDRESS }}
+          GITHUB_TOKEN: ${{ secrets.READ_ONLY_GITHUB_TOKEN }}
 
       - name: Purge the CSS
         run: |
@@ -35,5 +46,5 @@ jobs:
           publish_dir: ./output
           cname: blog.kerollmops.com
           force_orphan: true
-          user_name: 'github-actions[bot]'
-          user_email: 'github-actions[bot]@users.noreply.github.com'
+          user_name: "github-actions[bot]"
+          user_email: "github-actions[bot]@users.noreply.github.com"
