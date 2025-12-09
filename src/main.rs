@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use anyhow::Context;
 use askama::Template;
 use big_s::S;
-use http::header::{ACCEPT, AUTHORIZATION};
+use http::header::ACCEPT;
 use octocrab::issues::IssueHandler;
 use octocrab::models::reactions::ReactionContent;
 use octocrab::models::timelines::Rename;
@@ -56,10 +56,11 @@ async fn main() -> anyhow::Result<()> {
 
     // force GitHub to return HTML content
     let octocrab = if let Ok(token) = env::var("GITHUB_TOKEN") {
-        eprintln!("I am authenticated!");
+        eprintln!("I am authenticated with {token:?}!");
         OctocrabBuilder::default()
+            .personal_token(token)
             .add_header(ACCEPT, format_media_type("full"))
-            .add_header(AUTHORIZATION, format!("Bearer {}", token))
+            // .add_header(AUTHORIZATION, format!("Bearer {}", token))
             .build()?
     } else {
         eprintln!("I am not authenticated!");
