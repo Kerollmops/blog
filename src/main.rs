@@ -55,12 +55,11 @@ async fn main() -> anyhow::Result<()> {
     }
 
     // force GitHub to return HTML content
-    let octocrab = if let Ok(token) = env::var("GITHUB_TOKEN") {
-        eprintln!("I am authenticated with {token:?}!");
+    let octocrab = if let Some(token) = env::var("GITHUB_TOKEN").ok().filter(|s| !s.is_empty()) {
+        eprintln!("I am authenticated!");
         OctocrabBuilder::default()
             .personal_token(token)
             .add_header(ACCEPT, format_media_type("full"))
-            // .add_header(AUTHORIZATION, format!("Bearer {}", token))
             .build()?
     } else {
         eprintln!("I am not authenticated!");
