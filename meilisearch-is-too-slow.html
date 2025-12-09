@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="auto">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script defer data-domain="blog.kerollmops.com" src="https://plausible.io/js/script.js"></script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦀</text></svg>">
+    <script type="application/javascript" src="/assets/script.js"></script>
+    <script defer type="application/javascript" src="/assets/tiny-utterances.js"></script>
+    <script type="application/javascript" src="/assets/matter.min.js"></script>
+    <script type="application/javascript" src="/assets/balls.js"></script>
+    <link href="assets/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/style.css" rel="stylesheet">
+    <link href="assets/tiny-utterances.css" rel="stylesheet">
+
+    <!-- Primary Meta Tags -->
+    <title>Meilisearch is too slow</title>
+    <meta name="title" content="Meilisearch is too slow" />
+    <meta name="description" content=" In this blog post, we explore the enhancements needed for Meilisearch's document indexer. We'll discuss the current indexing engine, its drawbacks, and new techniques to optimize performance. With insights on parallel processing, memory management, and efficient data handling, we'll draft a robust new indexer to better handle large datasets and frequent updates. Join us for a deep dive into making Meilisearch's indexing faster, more efficient, and scalable. " />
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://blog.kerollmops.com/meilisearch-is-too-slow" />
+    <meta property="og:title" content="Meilisearch is too slow" />
+    <meta property="og:description" content=" In this blog post, we explore the enhancements needed for Meilisearch's document indexer. We'll discuss the current indexing engine, its drawbacks, and new techniques to optimize performance. With insights on parallel processing, memory management, and efficient data handling, we'll draft a robust new indexer to better handle large datasets and frequent updates. Join us for a deep dive into making Meilisearch's indexing faster, more efficient, and scalable. " />
+    <meta property="og:image" content="https://blog.kerollmops.com/preview/meilisearch-is-too-slow.png" />
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="Meilisearch is too slow" />
+    <meta property="twitter:title" content="Meilisearch is too slow" />
+    <meta property="twitter:description" content=" In this blog post, we explore the enhancements needed for Meilisearch's document indexer. We'll discuss the current indexing engine, its drawbacks, and new techniques to optimize performance. With insights on parallel processing, memory management, and efficient data handling, we'll draft a robust new indexer to better handle large datasets and frequent updates. Join us for a deep dive into making Meilisearch's indexing faster, more efficient, and scalable. " />
+    <meta property="twitter:image" content="https://blog.kerollmops.com/preview/meilisearch-is-too-slow.png" />
+
+    
+  <meta name="description" content="Article by Clément Renault titled: Meilisearch is too slow.">
+  <link rel="stylesheet" href="/assets/starry-night.css">
+  <style></style>
+
+  </head>
+  <body>
+    <canvas id="ballsCanvas"></canvas>
+    <div class="container">
+      
+<header class="profil">
+  <a href="/">
+      <div class="text-center">
+          <img src="https://avatars.githubusercontent.com/u/3610253?v=4&s=100" class="profil-picture" alt="Profil picture of Clément Renault">
+          <p class="long-text text-uppercase">Clément Renault</p>
+      </div>
+  </a>
+</header>
+
+
+      
+    <p class="text-center">
+        <small class="text-body-secondary"><i>August 20, 2024</i> — <a href="https://github.com/Kerollmops/blog/issues/11#comment-composer-heading">5 comments</a></small>
+    </p>
+    <article>
+        <h1 class="mb-4 text-center">Meilisearch is too slow</h1>
+
+        <html><head></head><body><p dir="auto">Consider this post about the drawbacks and solutions for <a href="https://github.com/meilisearch/meilisearch">the Meilisearch</a> document indexer. We'll start with the current situation, explore the techniques, and finally draft a powerful new document indexer.</p>
+<p dir="auto">I'm currently on vacation, but as the CTO and co-founder of Meilisearch, I can't help but think about ways to enhance our product, particularly the document indexer. Writing helps refine my ideas, so I'm excited to share my thought process between mountain hikes.</p>
+<p dir="auto">Meilisearch is <a href="https://github.com/topics/search-engine">the second most starred search engine on GitHub</a>. It features a straightforward HTTP API, is built in Rust, and integrates a hybrid search system that combines keyword and semantic search for highly relevant results. We need to optimize the indexer to handle better large datasets, including hundreds of millions of documents.</p>
+<h3 id="what-is-a-document-indexing-engine" dir="auto"><a href="#what-is-a-document-indexing-engine">What is a Document Indexing Engine?</a></h3>
+<p dir="auto">Every search engine is built upon inverted indexes. Inverted indexes are factorized key-value stores where the key corresponds to an item appearing in a set, and the set is the bitmap linked to it; for example, a <em>word -&gt; docids</em> inverted index matches words to a bitmap of document IDs that contain those words, such as <em>chocolate</em>, which appears in documents 1, 2, 20, and 42. Meilisearch uses <a href="https://github.com/meilisearch/meilisearch/blob/321639364fb1ba991d21ebbc58075c993f0e9df7/milli/src/index.rs#L109-L169">around twenty-one different inverted indexes</a> to deliver highly relevant search results. Additionally, it employs various interesting data structures, such as the arroy tree, to enhance its functionality.</p>
+<p dir="auto"><a href="assets/images/a5a90dc5d8a66fed.png" rel="noopener noreferrer" target="_blank"><img alt="An inverted index example" src="assets/images/a5a90dc5d8a66fed.png" style="max-width: 100%;"></a></p>
+<p dir="auto">The current indexing engine is highly efficient, capable of indexing 250 million documents in about twenty hours on a high-CPU machine. However, there is still room for significant improvement. This article will explore the recipe for building an even better indexer.</p>
+<p dir="auto"><a href="assets/images/8857759dd25a36d.jpg" rel="noopener noreferrer" target="_blank"><img alt="Arvid Kahl and its 96-core machine running Meilisearch" src="assets/images/8857759dd25a36d.jpg" style="max-width: 100%;"></a></p>
+<p align="center" dir="auto"><i>Arvid Kahl <a href="https://x.com/arvidkahl/status/1811395023058944289" rel="nofollow">bought a 96-core machine, hoping Meilisearch would use them efficiently</a>, but it didn't.</i></p>
+<p dir="auto">Internally, we've noticed a trend: customers want to index hundreds of millions of documents and update them frequently. One customer has over 311 million documents, growing by about ten million each week. The <a href="https://x.com/arvidkahl/status/1807889668748275802" rel="nofollow">search engine is so fast and reliable with large datasets</a> that users don't notice indexing issues until they need to reindex everything from scratch. This usually happens when loading Meilisearch dumps or bulk updates from SQL databases, especially during initial setup.</p>
+<h4 id="a-little-bit-of-history" dir="auto"><a href="#a-little-bit-of-history">A Little Bit of History</a></h4>
+<p dir="auto">We introduced diff-indexing less than a year ago. Before version 1.6, our engine struggled with updates and deletions. It used to soft-delete documents and index the new version as if it were entirely new, leading to increased disk usage, complexity, and bugs. This method required reindexing everything and acting like a garbage collector, deleting soft-deleted documents only when a certain threshold was reached, which impacted random updates.</p>
+<p dir="auto">Since version 1.6, the indexing pipeline has become much more efficient. It processes both the current and new versions of a document to determine only the necessary changes to the inverted indexes. This approach has drastically sped up document updates by reducing the number of operations in LMDB. The differential indexer uses extractors to create chunks, essentially inverted indexes of deletions and insertions applied to the bitmaps in LMDB.</p>
+<p dir="auto"><a href="assets/images/c0f004355f096447.jpeg" rel="noopener noreferrer" target="_blank"><img alt="diff indexing showoff" src="assets/images/c0f004355f096447.jpeg" style="max-width: 100%;"></a></p>
+<p align="center" dir="auto"><i>The blue spikes represent a 99% auto-batching and 1% garbage collection of soft-deleted documents no longer visible in v1.6.</i></p>
+<p dir="auto">LMDB, which stands for <a href="https://en.wikipedia.org/wiki/Lightning_Memory-Mapped_Database" rel="nofollow">Lightning Memory-Mapped Database</a>, is the core component of a Meilisearch index. It's a fantastic key-value store because it:</p>
+<ul dir="auto">
+<li>Scales reads with the number of CPUs,</li>
+<li>Supports zero-allocation reads,</li>
+<li>Supports atomic and fully serialized transactions,</li>
+<li>Needs minimal configuration,</li>
+<li>Has a small API surface,</li>
+<li>Has low write amplification,</li>
+<li>Is reliable, having been used in Firefox for years.</li>
+</ul>
+<p dir="auto">But it has some downsides:</p>
+<ul dir="auto">
+<li>Visible fragmentation,</li>
+<li>Only one write transaction at a time,</li>
+<li>Non-aligned value bytes, limiting zero-copy deserialization.</li>
+</ul>
+<p dir="auto">This article will explore the details of Howard Chu's amazing key-value store.</p>
+<p dir="auto">In 2022, we released the <a href="https://meilisearch.com/cloud" rel="nofollow">first version of our Cloud ✨</a> but experienced numerous out-of-memory crashes.</p>
+<h4 id="a-disk-based-indexer-to-fight-oom" dir="auto"><a href="#a-disk-based-indexer-to-fight-oom">A Disk-Based Indexer to Fight OOM</a></h4>
+<p dir="auto">We revamped the indexing system to be chunk-based, which drastically cut down on memory usage. Now, Meilisearch splits document updates into 4MiB temporary grenad files, processed by various extractors in parallel. Each extractor works on a chunk and produces one or multiple additional chunks, usually inverted indexes.</p>
+<p dir="auto">We designed our token extractors around grenad<sup><a aria-describedby="footnote-label" data-footnote-ref="" href="#user-content-fn-1-71db8f7621d7883f250a71e8e151cca5" id="user-content-fnref-1-71db8f7621d7883f250a71e8e151cca5">1</a></sup> <code class="notranslate">Sorter</code>s. The <code class="notranslate">Sorter</code> holds key-value pairs in an in-memory buffer until it's full. When full, it:</p>
+<ul dir="auto">
+<li>Sorts the entries by key,</li>
+<li>Merges them by deserializing the Roaring Bitmaps,</li>
+<li>Performs bitmap unions,</li>
+<li>Serializes the unions,</li>
+<li>Writes the merged entries into a temporary file using a <code class="notranslate">Writer</code>,</li>
+<li>Once the limit of temporary files is reached, files are merged together.</li>
+</ul>
+<p dir="auto">This process includes:</p>
+<ul dir="auto">
+<li>Sorting entries in <em>O(n * log(n))</em>,</li>
+<li>Multiple <code class="notranslate">memcpy</code> operations,</li>
+<li>Numerous small allocations and I/O operations,</li>
+<li>Serializing bitmaps during insertion,</li>
+<li>Keeping the key multiple times in memory.</li>
+</ul>
+<p dir="auto">All of this requires significant resources, especially for high-frequency entries like <em>chocolate</em> in a recipe dataset or a <em>science fiction</em> tag in a movie dataset.</p>
+<p dir="auto">Most of the time, the extractors rely on other extractors, which in turn depend on the original document chunks. This dependency chain can lead to long-lived temporary grenad files, causing a buildup of open files and resulting in <em>too many open files</em> errors during indexing. Having many open files also puts extra pressure on the filesystem's cache, which can further degrade performance.</p>
+<p dir="auto">When extractors finish producing chunks, we send them directly to the LMDB writer. The writing thread's tasks include:</p>
+<ul dir="auto">
+<li>Going through grenad file entries and decoding bitmaps for deletions and insertions,</li>
+<li>Retrieving and decoding the bitmap for each corresponding key in LMDB,</li>
+<li>Making deletions and insertions on the LMDB bitmap,</li>
+<li>Encoding and saving the updated bitmap back into LMDB.</li>
+</ul>
+<div class="highlight highlight-source-rust notranslate position-relative overflow-auto" data-snippet-clipboard-copy-content="// For each inverted index chunk received
+for chunk_reader in chunks_channel {
+    // Iterate throught the grenad file entries
+    let mut iter = chunk_reader.into_cursor();
+    while let Some((key, deladd_bitmaps)) = iter.next()? {
+        // Deserialiaze both operations
+        let deletions = deladd_bitmaps.get(Deletion).unwrap_or_default();
+        let additions = deladd_bitmaps.get(Addition).unwrap_or_default();
+        // Get the bitmaps from LMDB and do the operations
+        let mut bitmap = database.get(wtxn, key)?.unwrap_or_default();
+        bitmap -= deletions;
+        bitmap |= additions;
+        // Serialize and write back into LMDB
+        database.put(wtxn, key, &amp;bitmap)?;
+    }
+}" dir="auto"><pre class="notranslate"><span class="pl-c">// For each inverted index chunk received</span>
+<span class="pl-k">for</span> chunk_reader <span class="pl-k">in</span> chunks_channel <span class="pl-kos">{</span>
+    <span class="pl-c">// Iterate throught the grenad file entries</span>
+    <span class="pl-k">let</span> <span class="pl-k">mut</span> iter = chunk_reader<span class="pl-kos">.</span><span class="pl-en">into_cursor</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-k">while</span> <span class="pl-k">let</span> <span class="pl-v">Some</span><span class="pl-kos">(</span><span class="pl-kos">(</span>key<span class="pl-kos">,</span> deladd_bitmaps<span class="pl-kos">)</span><span class="pl-kos">)</span> = iter<span class="pl-kos">.</span><span class="pl-en">next</span><span class="pl-kos">(</span><span class="pl-kos">)</span>? <span class="pl-kos">{</span>
+        <span class="pl-c">// Deserialiaze both operations</span>
+        <span class="pl-k">let</span> deletions = deladd_bitmaps<span class="pl-kos">.</span><span class="pl-en">get</span><span class="pl-kos">(</span><span class="pl-v">Deletion</span><span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-en">unwrap_or_default</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+        <span class="pl-k">let</span> additions = deladd_bitmaps<span class="pl-kos">.</span><span class="pl-en">get</span><span class="pl-kos">(</span><span class="pl-v">Addition</span><span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-en">unwrap_or_default</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+        <span class="pl-c">// Get the bitmaps from LMDB and do the operations</span>
+        <span class="pl-k">let</span> <span class="pl-k">mut</span> bitmap = database<span class="pl-kos">.</span><span class="pl-en">get</span><span class="pl-kos">(</span>wtxn<span class="pl-kos">,</span> key<span class="pl-kos">)</span>?<span class="pl-kos">.</span><span class="pl-en">unwrap_or_default</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+        bitmap -= deletions<span class="pl-kos">;</span>
+        bitmap |= additions<span class="pl-kos">;</span>
+        <span class="pl-c">// Serialize and write back into LMDB</span>
+        database<span class="pl-kos">.</span><span class="pl-en">put</span><span class="pl-kos">(</span>wtxn<span class="pl-kos">,</span> key<span class="pl-kos">,</span> <span class="pl-c1">&amp;</span>bitmap<span class="pl-kos">)</span>?<span class="pl-kos">;</span>
+    <span class="pl-kos">}</span>
+<span class="pl-kos">}</span></pre></div>
+<p dir="auto">Meilisearch can't perform merging in parallel because the operations depend on chunks that have already been merged within the ongoing write transaction. In simpler terms, we've made changes within the current transaction that aren't yet visible to read transactions. This means we can't open multiple read transactions to work in parallel.</p>
+<p dir="auto">LMDB's read-your-write feature allows us to see what we've just written in the write transaction. However, frequent writes to the same entries can lead to increased database fragmentation and memory usage, as LMDB keeps hot pages in a malloced area to reduce disk writes. As a result, we often notice that only a single working thread is active when inspecting slow indexations.</p>
+<p dir="auto">The Meilisearch task scheduler auto-batches tasks to improve latency and indexing speed for large datasets. However, it's not optimized for real-time indexing due to varying task sizes. Initially, auto-batching was introduced to handle users sending documents one by one, which slowed down indexing. Sometimes, Meilisearch processes too many tasks and crashes (OOM killed). This could be fixed by designing the auto-batching system around the total batch size instead of the task count.</p>
+<p dir="auto">In conclusion, while we have successfully addressed out-of-memory issues, we now face higher disk usage and increased filesystem pressure. Disk operations are slower than RAM access, and the available RAM is often only partially utilized. Additionally, the system frequently runs single-threaded, which impacts indexing performance.</p>
+<h3 id="a-better-indexing-engine" dir="auto"><a href="#a-better-indexing-engine">A Better Indexing Engine</a></h3>
+<p dir="auto">Rewriting is often considered taboo in our industry. The main reason is that rewriting a functionality delays new features and leads the project through uncertain delays and new bugs without providing immediate visible value. However, at Meilisearch, we embrace this principle because we have had great success with past rewrites and know how to manage them effectively.</p>
+<p dir="auto">The first example that comes to mind is the index-scheduler rewrite. We adopted a very sane methodology, <a data-hovercard-type="issue" data-hovercard-url="/meilisearch/meilisearch/issues/2725/hovercard" href="https://github.com/meilisearch/meilisearch/issues/2725">where we listed the features</a> we wanted for the release, those for the future, and the major bugs from the past year. By mixing these elements during two to four-hour peer coding sessions, we created an excellent product, free of significant bugs, with ideally shared knowledge that improved support, efficient bug fixing, and smooth feature addition.</p>
+<p dir="auto">Another example is the recent <em>Spotify/Annoy</em> port, from C++ to Rust on top of LMDB. A <a href="https://blog.kerollmops.com/spotify-inspired-elevating-meilisearch-with-hybrid-search-and-rust" rel="nofollow">series of blog posts</a> details this story, resulting in a perfectly integrated library with shared knowledge, better performance, and fewer bugs.</p>
+<p dir="auto">When a software component is built from the ground up with each required feature in mind, it becomes significantly better designed, typed, understandable, and future-proof. This contrasts with components initially intended to accommodate only some planned features and, therefore, struggle to integrate necessary changes.</p>
+<p dir="auto"><a href="assets/images/4f718489c297b6a8.png" rel="noopener noreferrer" target="_blank"><img alt="The Frankenchtein movie - 1931" src="assets/images/4f718489c297b6a8.png" style="max-width: 100%;"></a></p>
+<h4 id="available-tricks-and-techniques" dir="auto"><a href="#available-tricks-and-techniques">Available Tricks and Techniques</a></h4>
+<p dir="auto">Let me highlight some of the tricks and techniques we've learned with LMDB, which will be essential for the new document indexer we want to implement. The current indexer can't efficiently use these techniques; attempting to do so would add complexity and lead to more bugs.</p>
+<p dir="auto">LMDB only allows a single write transaction at a time, which is the key to its serializability, whereas RocksDB supports multiple parallel writers. This fundamental difference had previously limited my thoughts on how Meilisearch could be optimized. However, we've realized that <strong>reading in parallel while writing</strong> is possible with LMDB. This is the most impactful discovery for enhancing the Meilisearch indexer! We can access the database content while using the write transaction by using a read transaction in each indexing thread — note <a href="http://www.lmdb.tech/bench/optanessd/imdt.html" rel="nofollow">that having more readers while writing clearly impacts write throughput</a>. However, LMDB, with a single writer, remains impressively performant compared to RocksDB, with large values that we tend to have, i.e., large bitmaps. Additionally, LSM trees have higher write amplification, especially when writing in parallel, which we aim to minimize.</p>
+<p dir="auto"><a href="assets/images/6ef05a57a80fe3da.png" rel="noopener noreferrer nofollow" target="_blank"><img alt="Write scaling with number of cores" data-canonical-src="https://i.imgur.com/H7DW1g9.png" src="assets/images/6ef05a57a80fe3da.png" style="max-width: 100%;" width="49%"></a> <a href="assets/images/131ffc68cfb729f4.png" rel="noopener noreferrer nofollow" target="_blank"><img alt="Read scaling with number of cores" data-canonical-src="https://i.imgur.com/uiajwMh.png" src="assets/images/131ffc68cfb729f4.png" style="max-width: 100%;" width="49%"></a></p>
+<p align="center" dir="auto"><i>LSMs excel at handling small, write-heavy tasks, whereas LMDB performs better with larger values. <a href="http://www.lmdb.tech/bench/ondisk/" rel="nofollow">Graphs above show the performance for inserting and reading 4k values</a>.</i></p>
+<p dir="auto">The Meilisearch indexer determines the operations to execute on the database. These operations are represented by specifying document IDs to remove from and insert in given bitmaps in LMDB. The ability to read the database in parallel while writing to it opens up the possibility of <strong>performing these merge operations in parallel</strong> and sending the final serialized bitmaps to the main writing thread, further balancing the computational load.</p>
+<p dir="auto">However, this optimization only works if we <strong>stop reordering settings updates with document updates</strong> and handle them in a single write transaction. The current engine tries to be smart by processing settings first, which can reduce work for new documents. However, handling everything in one transaction can trigger <code class="notranslate">MDB_TXN_FULL</code> errors because the transaction gets too big. These settings changes are rare, and optimizing this way makes it impossible to read the inverted indexes due to intermediate settings changes.</p>
+<p dir="auto">When implementing the multi-threading support of arroy, we found a way to <strong>read uncommitted changes in parallel</strong> from LMDB. For detailed insights and code examples, <a href="https://blog.kerollmops.com/multithreading-and-memory-mapping-refining-ann-performance-with-arroy#reading-the-user-item-nodes-from-different-threads" rel="nofollow">check out my vector store implementation writeup</a>. This technique leverages LMDB's read-your-writes capability and the zero-copy memory-mapping principle: Entries in LMDB are pointers to the memory-mapped area, valid until the environment is dropped or any further writes occur. Gather the pointers to the desired entries, then share them in parallel while ensuring the write transaction remains untouched.</p>
+<p dir="auto">We plan to execute a <strong>single write to set the state of the entries</strong> by first preparing the final inverted index bitmaps as described above. Once these operations are merged in parallel, the result will be sent to the writing thread. Constructing a disk-based BTree can be allocation-intensive, but LMDB offers <a href="https://github.com/LMDB/lmdb/blob/ddd0a773e2f44d38e4e31ec9ed81af81f4e4ccbb/libraries/liblmdb/lmdb.h#L1367-L1370">the <code class="notranslate">MDB_APPEND</code> parameter</a>, which <strong>allows entries to be appended to the end</strong> of a database if they are still in lexicographic order. This reduces the overhead of the insertion process, reduces fragmentation, and decreases write amplification.</p>
+<p dir="auto">We can further enhance performance by <strong>reducing communication overhead and data transfer</strong> between threads. The most effective strategy is to serialize the bitmaps into an in-memory buffer, ideally in parallel. This allows for minimal allocations and uses wait-free data structures. When combined with a hot reading loop on the writing thread end, the <a href="https://github.com/jamesmunns/bbqueue">bbqueue crate</a> is a promising solution.</p>
+<p dir="auto"><a href="assets/images/412acd3c54c84799.png" rel="noopener noreferrer" target="_blank"><img alt="Illustration from the bbqueue blog post by ferrous systems, demonstrating the method of reading in a circular buffer" src="assets/images/412acd3c54c84799.png" style="max-width: 100%;"></a></p>
+<p align="center" dir="auto"><i><a href="https://ferrous-systems.com/blog/lock-free-ring-buffer/#reading" rel="nofollow">Illustration from the bbqueue blog post by ferrous systems</a>, demonstrating the method of reading in a circular buffer.</i></p>
+<p dir="auto">One of the earlier versions of grenad<sup><a aria-describedby="footnote-label" data-footnote-ref="" href="#user-content-fn-2-71db8f7621d7883f250a71e8e151cca5" id="user-content-fnref-2-71db8f7621d7883f250a71e8e151cca5">2</a></sup> included a feature that enabled <strong>file streaming while deallocating</strong> read parts, thus freeing space for the database or other grenad files. This feature could help reduce write-amplification using the fallocate(2) system call, currently available only on Linux. This feature is handy when the grenad <code class="notranslate">Sorter</code> needs to merge temporary files.</p>
+<h4 id="the-set-of-features-to-support" dir="auto"><a href="#the-set-of-features-to-support">The Set of Features to Support</a></h4>
+<p dir="auto">Now that we've explored all these exciting new tools and techniques, let's see how we can use them to make our document indexer faster and more efficient, while also supporting the cool new features we have in mind.</p>
+<p dir="auto">People mainly use Meilisearch for <strong>document insertion</strong>, either by merging (PATCH) or replacing (POST) documents. Users send their documents through HTTP routes, and Meilisearch accepts them asynchronously, converts them into grenad JSON files and registers them in the index scheduler. To accommodate users who send documents one by one, the scheduler auto-batches multiple tasks to be processed in a single transaction. The indexer then deduplicates and writes the final document versions into another temporary grenad file. This method led to data duplication and slower performance on slow disks. I tried merging documents on the fly and using a parallel iterator with the new multithreaded indexing pipeline, and the results have been fantastic.</p>
+<p dir="auto">Another common task is upgrading to the latest Meilisearch version. This involves creating and <strong>loading a dump</strong> with the new engine. A dump is a tarball (<code class="notranslate">.tar.gz</code>) containing index settings and documents in a JSON-lines file. The order of files in the tarball matters because you can only access them sequentially. To prepare indexes efficiently, we need to reorder files so that settings come before the large document files.</p>
+<p dir="auto">When loading dumps with hundreds of millions of documents, we often hit the <code class="notranslate">MDB_TXN_FULL</code> error because the transaction gets too big. This happens due to many writes and overwrites during the processing and merging of grenad chunks. To fix this, we can <strong>process the documents in smaller chunks</strong> across different transactions, and since the database is empty when loading a dump, using the <code class="notranslate">MDB_APPEND</code> option helps <strong>add entries and cut down on dirty pages</strong>.</p>
+<p dir="auto">Settings often change during an index's lifespan. We have recently invested a lot of effort into differential indexing and plan to maintain this approach. We <strong>only provide the necessary document fields</strong> (e.g., newly declared searchable/filterable fields) to the extractors. Since the <em>documents themselves do not change</em>, we can skip the document writing loop, avoiding some disk operations.</p>
+<p dir="auto">We recently launched <strong><a href="https://meilisearch.notion.site/Update-Documents-by-Function-0cff8fea7655436592e7c8a6de932062" rel="nofollow">the "edit documents by function" feature</a></strong>, which lets users reshape documents by modifying any attribute through a custom function. Currently, this function is applied to all documents in parallel, resulting in a single grenad JSON file before continuing with the standard indexing process. This can cause space issues when editing many documents. Instead of writing everything to disk, we should <em>stream the newly edited documents</em>. By doing this, even if we run the function multiple times, we can generate the different inverted indexes and write them into LMDB.</p>
+<p dir="auto">Analyzing our largest customers' databases, we found that the documents database, where we store raw JSON for optimal retrieval, is the biggest. We started using zstd for dictionary compression by sampling 10k documents to create a dictionary, which reduced size by 2-3 times. The current indexer compresses documents after indexing, slowing things down, <a data-hovercard-type="pull_request" data-hovercard-url="/meilisearch/meilisearch/pull/4760/hovercard" href="https://github.com/meilisearch/meilisearch/pull/4760">so we didn't merge the PR</a>. The new indexer will hold enough documents in memory to build the compression dictionary, enabling <strong>compression and parallel streaming of documents</strong> during the indexation.</p>
+<p dir="auto">We want to cut down on disk usage to make <strong>better use of CPUs and memory</strong>, avoiding slow I/O waits. We noticed that grenad <code class="notranslate">Sorter</code>s weren't using available memory efficiently, relying too much on disk writes. To fix this, we'll add <em>a cache for each indexing thread</em> to handle entries in memory first, writing to disk only when necessary. We'll also ensure these caches don't use too much memory to prevent OOM issues. We could even tweak the roaring and lru crates to support custom allocators, just like <a href="https://docs.rs/hashbrown/0.14.5/hashbrown/struct.HashMap.html#examples-4" rel="nofollow">hashbrown supports bumpalo</a>, thanks to the <code class="notranslate">Allocator</code> trait.</p>
+<p dir="auto">The current engine uses 4MiB document chunks, which are then processed by extractors to generate new chunks for the writing thread or other extractors. This method can be inefficient because if one chunk is more complex to process, it can slow down the entire pipeline. Instead, we can use Rayon and <a href="https://github.com/rayon-rs/rayon/blob/main/FAQ.md#how-does-rayon-balance-work-between-threads">its work-stealing feature</a> to process documents individually. This way, if some documents are harder to process, the <strong>workload is balanced more efficiently across threads</strong>.</p>
+<p dir="auto">One of Meilisearch's key tools is <a href="https://github.com/meilisearch/charabia">charabia</a>, which handles language detection through Whatlang and efficient token extraction and normalization. We're considering switching from the Whatlang library to Whichlang for <strong>a 10x speed boost</strong>. We're also working on <em>making charabia faster</em>, with the help of <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/ManyTheFish/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/ManyTheFish">@ManyTheFish</a>, to speed up the entire extraction process.</p>
+<p dir="auto">To <strong>support different types of indexing</strong> — realtime and large insertions — we can tweak the task scheduler to batch tasks based on the size of the document payloads sent by users. Larger batches mean longer latency but faster overall indexing. Smaller batches allow quicker visibility of documents but take longer to index all tasks. By configuring the auto-batch size, users can choose their preferred behavior.</p>
+<h3 id="future-improvements" dir="auto"><a href="#future-improvements">Future Improvements</a></h3>
+<p dir="auto">We aim to make Meilisearch updates seamless. Our vision includes <strong>avoiding dumps for non-major updates</strong> and reserving them only for significant version changes. We will implement a system to version internal databases and structures. With this, Meilisearch can read and convert older database versions to the latest format on the fly. This transition will make the whole engine <em>resource-based</em>, and <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/dureuill/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/dureuill">@dureuill</a> is driving this initiative.</p>
+<p dir="auto">To determine the best way to handle the inverted index content, we should <strong>measure disk speed</strong>. This will help us decide whether to write the content to disk for the LMDB writing thread to handle later or process the values in parallel and send them directly to the writing thread without using the disk. We will always compute the merged version of the inverted index in parallel with multiple read transactions.</p>
+<p dir="auto">Waiting can be challenging, especially without updates. By <strong>displaying the progress of indexing pipelines</strong> through multiple loading bars, we can make the wait more tolerable, keep users informed, and even assist in debugging slow pipelines for further improvements.</p>
+<p dir="auto"><a href="assets/images/da0d1c410b3382b6.gif" rel="noopener noreferrer" target="_blank"><img alt="Multi progress bar of indicatif" data-animated-image="" src="assets/images/da0d1c410b3382b6.gif" style="max-width: 100%;"></a></p>
+<p align="center" dir="auto"><i>Cool loading bars from the <a href="https://github.com/console-rs/indicatif">console-rs/indicatif library</a>. Imagine how awesome they would look on a web dashboard!</i></p>
+<h3 id="wrapping-up" dir="auto"><a href="#wrapping-up">Wrapping Up</a></h3>
+<p dir="auto">We aim to create a super-efficient key-value store, similar to an LSM, optimized for parallel writes to build the inverted indexes before updating the LMDB inverted indexes. By making smarter use of RAM to cut down on disk writes and gathering operations for LMDB, we can significantly reduce the number of writes into this B+Tree key-value store, primarily designed for heavy read operations. The good news is that we can compute these inverted indexes while writing into LMDB, making the process much more efficient.</p>
+<p dir="auto">I hope you found this exploration of techniques and improvements as exciting as we do! We're eager to implement these strategies in our indexer rewrite and thoroughly benchmark it across various machines and datasets. We aim to ensure minimal regressions and achieve significant speed-ups, especially on larger machines with extensive datasets.</p>
+<p dir="auto">If you have any questions or suggestions, feel free to comment directly on this post, <a href="https://news.ycombinator.com/item?id=41299734" rel="nofollow">HackerNews</a>, <a href="https://lobste.rs/s/xoy63p/meilisearch_is_too_slow" rel="nofollow">Lobsters</a>, <a href="https://www.reddit.com/r/rust/comments/1ewv11e/meilisearch_is_too_slow" rel="nofollow">the Rust sub-Reddit</a>, or <a href="https://x.com/Kerollmops/status/1825881368649224279" rel="nofollow">X (formerly Twitter)</a>. Stay tuned for more updates, and happy searching!</p>
+<section class="footnotes" data-footnotes=""><h2 id="footnotes" class="sr-only" dir="auto" id="footnote-label"><a href="#footnotes">Footnotes</a></h2>
+<ol dir="auto">
+<li id="user-content-fn-1-71db8f7621d7883f250a71e8e151cca5">
+<p dir="auto"><a href="https://github.com/meilisearch/grenad">Grenad is a collection</a> of immutable key-value store components I designed, drawing significant <a href="https://github.com/facebook/rocksdb/wiki/A-Tutorial-of-RocksDB-SST-formats">inspiration from LevelDB/RocksDB SST files</a>. It includes a <code class="notranslate">Writer</code> that manages lexicographically-ordered entries and creates a <code class="notranslate">Reader</code>, a <code class="notranslate">Reader</code> that retrieves or iterates over these entries, a <code class="notranslate">Merger</code> that streams sorted merged entries using multiple <code class="notranslate">Readers</code>, and a <code class="notranslate">Sorter</code> that temporarily stores unordered entries in a buffer before dumping them into a <code class="notranslate">Writer</code> when full. <a aria-label="Back to reference 1" class="data-footnote-backref" data-footnote-backref="" href="#user-content-fnref-1-71db8f7621d7883f250a71e8e151cca5">↩</a></p>
+</li>
+<li id="user-content-fn-2-71db8f7621d7883f250a71e8e151cca5">
+<p dir="auto"><a href="https://github.com/meilisearch/grenad/blob/1094409c59f41d3896d487f9869c33343f59c233/src/file_fuse.rs#L69-L101">Here is the <code class="notranslate">grenad::FileFuse</code> implementation for reference</a>. <a aria-label="Back to reference 2" class="data-footnote-backref" data-footnote-backref="" href="#user-content-fnref-2-71db8f7621d7883f250a71e8e151cca5">↩</a></p>
+</li>
+</ol>
+</section></body></html>
+    </article>
+
+    <div class="vote-emojis">
+    <a class="btn btn-outline-secondary vote-emoji" href="https://github.com/Kerollmops/blog/issues/11#comment-composer-heading" role="button">🙂 ✚</a>
+
+    
+    <a class="btn btn-outline-secondary vote-emoji" href="https://github.com/Kerollmops/blog/issues/11#comment-composer-heading" role="button">👍 2</a>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+        <a class="btn btn-outline-secondary vote-emoji" href="https://github.com/Kerollmops/blog/issues/11#comment-composer-heading" role="button">🚀 1</a>
+    
+
+    
+    </div>
+
+    <div class="tiny-utterances"
+        data-repo-owner="Kerollmops"
+        data-repo-name="blog"
+        data-issue-number="11"
+        data-max-comments="10">
+        <a class="tu-button"
+            href="https://github.com/Kerollmops/blog/issues/11#comment-composer-heading">
+            5 comments, join the discussion
+        </a>
+    </div>
+
+
+      
+  <footer class="profil text-center">
+    <p class="long-text text-uppercase">About Clément Renault</p>
+    <p class="text-center">I am the co-founder and CTO of <a href="https://github.com/meilisearch">@meilisearch</a>. I learned coding at the Paris <a href="https://github.com/42school">@42school</a>. I live in Paris and love video games.</p>
+    <hr class="mb-3"/>
+    <p class="text-center">Subscribe to <a href="/atom.xml">my RSS/Atom feed</a> for the latest updates and articles.</p>
+  </footer>
+
+    </div>
+  </body>
+</html>

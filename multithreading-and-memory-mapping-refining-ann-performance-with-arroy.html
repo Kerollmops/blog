@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="auto">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script defer data-domain="blog.kerollmops.com" src="https://plausible.io/js/script.js"></script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦀</text></svg>">
+    <script type="application/javascript" src="/assets/script.js"></script>
+    <script defer type="application/javascript" src="/assets/tiny-utterances.js"></script>
+    <script type="application/javascript" src="/assets/matter.min.js"></script>
+    <script type="application/javascript" src="/assets/balls.js"></script>
+    <link href="assets/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/style.css" rel="stylesheet">
+    <link href="assets/tiny-utterances.css" rel="stylesheet">
+
+    <!-- Primary Meta Tags -->
+    <title>Multithreading and Memory-Mapping: Refining ANN Performance with Arroy</title>
+    <meta name="title" content="Multithreading and Memory-Mapping: Refining ANN Performance with Arroy" />
+    <meta name="description" content=" Dive into my journey of porting Spotify's Annoy library to Rust using LMDB. Learn how I tackled memory-mapped file challenges, optimized tree node generation, and achieved significant performance improvements for indexing large vector datasets. Discover the power of the Share Nothing principle and prepare for future insights on incremental indexing and filtering. " />
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://blog.kerollmops.com/multithreading-and-memory-mapping-refining-ann-performance-with-arroy" />
+    <meta property="og:title" content="Multithreading and Memory-Mapping: Refining ANN Performance with Arroy" />
+    <meta property="og:description" content=" Dive into my journey of porting Spotify's Annoy library to Rust using LMDB. Learn how I tackled memory-mapped file challenges, optimized tree node generation, and achieved significant performance improvements for indexing large vector datasets. Discover the power of the Share Nothing principle and prepare for future insights on incremental indexing and filtering. " />
+    <meta property="og:image" content="https://blog.kerollmops.com/preview/multithreading-and-memory-mapping-refining-ann-performance-with-arroy.png" />
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="Multithreading and Memory-Mapping: Refining ANN Performance with Arroy" />
+    <meta property="twitter:title" content="Multithreading and Memory-Mapping: Refining ANN Performance with Arroy" />
+    <meta property="twitter:description" content=" Dive into my journey of porting Spotify's Annoy library to Rust using LMDB. Learn how I tackled memory-mapped file challenges, optimized tree node generation, and achieved significant performance improvements for indexing large vector datasets. Discover the power of the Share Nothing principle and prepare for future insights on incremental indexing and filtering. " />
+    <meta property="twitter:image" content="https://blog.kerollmops.com/preview/multithreading-and-memory-mapping-refining-ann-performance-with-arroy.png" />
+
+    
+  <meta name="description" content="Article by Clément Renault titled: Multithreading and Memory-Mapping: Refining ANN Performance with Arroy.">
+  <link rel="stylesheet" href="/assets/starry-night.css">
+  <style></style>
+
+  </head>
+  <body>
+    <canvas id="ballsCanvas"></canvas>
+    <div class="container">
+      
+<header class="profil">
+  <a href="/">
+      <div class="text-center">
+          <img src="https://avatars.githubusercontent.com/u/3610253?v=4&s=100" class="profil-picture" alt="Profil picture of Clément Renault">
+          <p class="long-text text-uppercase">Clément Renault</p>
+      </div>
+  </a>
+</header>
+
+
+      
+    <p class="text-center">
+        <small class="text-body-secondary"><i>December 16, 2023</i> — <a href="https://github.com/Kerollmops/blog/issues/4#comment-composer-heading">5 comments</a></small>
+    </p>
+    <article>
+        <h1 class="mb-4 text-center">Multithreading and Memory-Mapping: Refining ANN Performance with Arroy</h1>
+
+        <html><head></head><body><div class="markdown-alert markdown-alert-note" dir="auto"><p class="markdown-alert-title" dir="auto"><svg aria-hidden="true" class="octicon octicon-info mr-2" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p><p dir="auto">This is one blog post in a series:</p>
+<ul dir="auto">
+<li><a href="https://blog.kerollmops.com/spotify-inspired-elevating-meilisearch-with-hybrid-search-and-rust" rel="nofollow">Spotify-Inspired: Elevating Meilisearch with Hybrid Search and Rust</a>,</li>
+<li>Multithreading and Memory-Mapping: Refining ANN Performance with Arroy,</li>
+<li><a href="https://blog.kerollmops.com/meilisearch-expands-search-power-with-arroy-s-filtered-disk-ann" rel="nofollow">Meilisearch Expands Search Power with Arroy's Filtered Disk ANN</a>,</li>
+<li><a href="https://blog.kerollmops.com/how-meilisearch-updates-a-millions-vector-embeddings-database-in-under-a-minute" rel="nofollow">How Meilisearch Updates a Millions Vector Embeddings Database in Under a Minute</a>,</li>
+<li><a href="https://blog.kerollmops.com/meilisearch-indexes-embeddings-7x-faster-with-binary-quantization" rel="nofollow">Meilisearch Indexes Embeddings 7x Faster with Binary Quantization</a>.</li>
+</ul>
+</div>
+<p dir="auto">Wouldn't it be great to show you how a single-threaded, memory-mapped key-value store can be more efficient than a hand-written memory-mapped solution? I faced issues while porting the Spotify disk-based Approximate Nearest Neighbors library to Rust and, more specifically, to LMDB. Those issues were primarily due to LMDB and memory safety. Here is the story.</p>
+<p dir="auto">To remind you, <a href="https://github.com/meilisearch/arroy">Arroy is a library</a> that stores embeddings (vectors of floats) on disk. Some data structures are generated on top of those vectors, which look like trees governed by normals used to recursively split the vectors dataset into subdomains. But you can read more about this in part 1 of this series.</p>
+<h3 id="how-does-annoy-generate-the-tree-nodes" dir="auto"><a href="#how-does-annoy-generate-the-tree-nodes">How does Annoy Generate the Tree Nodes?</a></h3>
+<p dir="auto">Annoy, the Spotify library stores the nodes on disk, the item nodes (the ones containing the embeddings), and the other nodes that we will call tree nodes in this article. The advantage of doing this is double:</p>
+<ul dir="auto">
+<li>The program's memory usage is low and optimized by the OS as all the nodes live in a memory-mapped file.</li>
+<li>The concept is simple: Access a node by using its ID. The library will find its offset on disk by using a simple multiplication.</li>
+</ul>
+<p dir="auto">However, there are downsides to doing that. All nodes: items with embeddings along with the tree nodes must have the same size, and If a user wants to identify its embedding using the ID 2<sup>31</sup>, the library will increase the file size to the ID multiplied by the node size. For example, with a vector of 768 dimensions, storing a single item with the ID 2<sup>31</sup> will generate a file of more than 6.5 TiB.</p>
+<p dir="auto">In generating the final data structure, the tree nodes are all written to disk in the same file as the user item containing the embeddings. Those tree-building processes run in parallel, one running process by tree, and, therefore, requires a lot of synchronization when defining the newly created node ID and the memory area reserved for it, most importantly, when the memory-mapped file is too small to accept more nodes, only a single thread must grow the file, so a mutex is used on top of the mutable memory-map and around a <code class="notranslate">node_id</code> variable. One interesting property of tree generation is that the generation process only requires the original user item with embeddings.</p>
+<h3 id="the-challenges-we-encountered-when-porting-it-to-lmdb" dir="auto"><a href="#the-challenges-we-encountered-when-porting-it-to-lmdb">The Challenges We Encountered when Porting it to LMDB</a></h3>
+<p dir="auto">A fun fact is that it is the first time in a long time that I have written C++, and the first time I asked ChatGPT to code for me because I was not confident in doing C++ and feared falling into some segfault. I needed a small program to deserialize embeddings from stdin and give them to Annoy. The chatbot's code was mostly effective, but it omitted a critical <a href="https://gist.github.com/Kerollmops/d0e434016b1a698ec9bdbd86d268885e#file-par_build_tree-cpp-L74">empty vector check</a>, which led to a segmentation fault...</p>
+<p dir="auto">The main obstacle to porting it to LMDB is that writing into this key-value store is single-threaded. It doesn't support concurrent write operations to maintain a correctly balanced BTree. Fun incoming!</p>
+<h4 id="reading-the-user-item-nodes-from-different-threads" dir="auto"><a href="#reading-the-user-item-nodes-from-different-threads">Reading the User Item Nodes from Different Threads</a></h4>
+<p dir="auto">We have used LMDB at Meilisearch since the beginning. It is a well-maintained key-value store used in Firefox and maintained by the OpenLDAP developers. It is memory-mapped and does not maintain a user-end cache of the entries in memory but instead gives you a pointer to the memory-mapped area on disk. The main advantage is that you can keep a pointer to this area for as long as your read transaction lives. Ho yeah! Because it is a transactional key-value store that supports atomic committing, too!</p>
+<p dir="auto">But tree generation doesn't require referring to the generated nodes but only the user items. We previously saw that LMDB gives direct pointers into the memory-mapped file without maintaining any intermediate cache (that could be invalidated). There is another quirk with LMDB: you cannot share a read-only transaction between multiple threads, i.e., <code class="notranslate">RoTxn: !Sync</code> and you cannot move the write transaction between threads, i.e., <code class="notranslate">RwTxn: !Send + !Sync</code>. Ho! And there is no way to create a read-transaction on uncommitted changes. This is an issue because we want to generate the data-structures trees in the same transaction where we store the items.</p>
+<p dir="auto">But magic is everywhere, starting with the following small and fun data structure. The principle is to keep the pointers to the internal user items with embeddings in a <code class="notranslate">Vec&lt;*const u8&gt;</code>. Thanks to Rust, we can ensure, at compile time, that the pointers will live long enough by keeping the lifetime in the struct. Using the <code class="notranslate">&amp;'t RwTxn</code> to get the <code class="notranslate">&amp;'t RoTxn</code> by using <code class="notranslate">Deref</code> also ensures that we cannot modify the database while reading in it by using a <code class="notranslate">&amp;'t mut RwTxn</code>. <a href="https://bugs.openldap.org/show_bug.cgi?id=10138#c9" rel="nofollow">According to the leading developer of LMDB</a>, it is safe to share those pointers between threads and why I implemented <code class="notranslate">Sync</code> for this structure.</p>
+<div class="highlight highlight-source-rust notranslate position-relative overflow-auto" data-snippet-clipboard-copy-content="pub struct ImmutableItems<'t, D> {
+    item_ids: RoaringBitmap,
+    constant_length: Option<usize>,
+    offsets: Vec<*const u8>,
+    _marker: marker::PhantomData<(&amp;'t (), D)>,
+}
+
+impl<'t, D: Distance> ImmutableItems<'t, D> {
+    pub fn new(rtxn: &amp;'t RoTxn, database: Database<D>, index: u16) -> heed::Result<Self> {
+        let mut item_ids = RoaringBitmap::new();
+        let mut constant_length = None;
+        let mut offsets = Vec::new();
+
+        for result in database.items()? {
+            let (item_id, bytes) = result?;
+            assert_eq!(*constant_length.get_or_insert(bytes.len()), bytes.len());
+            item_ids.push(item_id);
+            offsets.push(bytes.as_ptr());
+        }
+
+        Ok(ImmutableItems { item_ids, constant_length, offsets, _marker: marker::PhantomData })
+    }
+
+    pub fn get(&amp;self, item_id: ItemId) -> heed::Result<Option<Leaf<'t, D>>> {
+        let len = match self.constant_length {
+            Some(len) => len,
+            None => return Ok(None),
+        };
+        let ptr = match self.item_ids.rank(item_id).checked_sub(1).and_then(|offset| self.offsets.get(offset)) {
+            Some(ptr) => *ptr,
+            None => return Ok(None),
+        };
+        let bytes = unsafe { slice::from_raw_parts(ptr, len) };
+        ItemCodec::bytes_decode(bytes).map(Some)
+    }
+}
+
+unsafe impl<D> Sync for ImmutableItems<'_, D> {}" dir="auto"><pre class="notranslate"><span class="pl-k">pub</span> <span class="pl-k">struct</span> <span class="pl-smi">ImmutableItems</span><span class="pl-kos">&lt;</span><span class="pl-c1">'</span><span class="pl-ent">t</span><span class="pl-kos">,</span> <span class="pl-smi">D</span><span class="pl-kos">&gt;</span> <span class="pl-kos">{</span>
+    <span class="pl-c1">item_ids</span><span class="pl-kos">:</span> <span class="pl-smi">RoaringBitmap</span><span class="pl-kos">,</span>
+    <span class="pl-c1">constant_length</span><span class="pl-kos">:</span> <span class="pl-smi">Option</span><span class="pl-kos">&lt;</span><span class="pl-smi">usize</span><span class="pl-kos">&gt;</span><span class="pl-kos">,</span>
+    <span class="pl-c1">offsets</span><span class="pl-kos">:</span> <span class="pl-smi">Vec</span><span class="pl-kos">&lt;</span><span class="pl-c1">*</span><span class="pl-k">const</span> <span class="pl-smi">u8</span><span class="pl-kos">&gt;</span><span class="pl-kos">,</span>
+    <span class="pl-c1">_marker</span><span class="pl-kos">:</span> marker<span class="pl-kos">::</span><span class="pl-smi">PhantomData</span><span class="pl-kos">&lt;</span><span class="pl-kos">(</span><span class="pl-c1">&amp;</span><span class="pl-c1">'</span><span class="pl-ent">t</span> <span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">,</span> <span class="pl-smi">D</span><span class="pl-kos">)</span><span class="pl-kos">&gt;</span><span class="pl-kos">,</span>
+<span class="pl-kos">}</span>
+
+<span class="pl-k">impl</span><span class="pl-kos">&lt;</span><span class="pl-c1">'</span><span class="pl-ent">t</span><span class="pl-kos">,</span> <span class="pl-smi">D</span><span class="pl-kos">:</span> <span class="pl-smi">Distance</span><span class="pl-kos">&gt;</span> <span class="pl-smi">ImmutableItems</span><span class="pl-kos">&lt;</span><span class="pl-c1">'</span><span class="pl-ent">t</span><span class="pl-kos">,</span> <span class="pl-smi">D</span><span class="pl-kos">&gt;</span> <span class="pl-kos">{</span>
+    <span class="pl-k">pub</span> <span class="pl-k">fn</span> <span class="pl-en">new</span><span class="pl-kos">(</span><span class="pl-s1">rtxn</span><span class="pl-kos">:</span> <span class="pl-c1">&amp;</span><span class="pl-c1">'</span><span class="pl-ent">t</span> <span class="pl-smi">RoTxn</span><span class="pl-kos">,</span> <span class="pl-s1">database</span><span class="pl-kos">:</span> <span class="pl-smi">Database</span><span class="pl-kos">&lt;</span><span class="pl-smi">D</span><span class="pl-kos">&gt;</span><span class="pl-kos">,</span> <span class="pl-s1">index</span><span class="pl-kos">:</span> <span class="pl-smi">u16</span><span class="pl-kos">)</span> -&gt; heed<span class="pl-kos">::</span><span class="pl-smi">Result</span><span class="pl-kos">&lt;</span><span class="pl-smi">Self</span><span class="pl-kos">&gt;</span> <span class="pl-kos">{</span>
+        <span class="pl-k">let</span> <span class="pl-k">mut</span> item_ids = <span class="pl-smi">RoaringBitmap</span><span class="pl-kos">::</span><span class="pl-en">new</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+        <span class="pl-k">let</span> <span class="pl-k">mut</span> constant_length = <span class="pl-v">None</span><span class="pl-kos">;</span>
+        <span class="pl-k">let</span> <span class="pl-k">mut</span> offsets = <span class="pl-smi">Vec</span><span class="pl-kos">::</span><span class="pl-en">new</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+
+        <span class="pl-k">for</span> result <span class="pl-k">in</span> database<span class="pl-kos">.</span><span class="pl-en">items</span><span class="pl-kos">(</span><span class="pl-kos">)</span>? <span class="pl-kos">{</span>
+            <span class="pl-k">let</span> <span class="pl-kos">(</span>item_id<span class="pl-kos">,</span> bytes<span class="pl-kos">)</span> = result?<span class="pl-kos">;</span>
+            <span class="pl-en">assert_eq</span><span class="pl-en">!</span><span class="pl-kos">(</span><span class="pl-c1">*</span>constant_length<span class="pl-kos">.</span>get_or_insert<span class="pl-kos">(</span>bytes<span class="pl-kos">.</span>len<span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">)</span><span class="pl-kos">,</span> bytes<span class="pl-kos">.</span>len<span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+            item_ids<span class="pl-kos">.</span><span class="pl-en">push</span><span class="pl-kos">(</span>item_id<span class="pl-kos">)</span><span class="pl-kos">;</span>
+            offsets<span class="pl-kos">.</span><span class="pl-en">push</span><span class="pl-kos">(</span>bytes<span class="pl-kos">.</span><span class="pl-en">as_ptr</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+        <span class="pl-kos">}</span>
+
+        <span class="pl-en">Ok</span><span class="pl-kos">(</span><span class="pl-smi">ImmutableItems</span> <span class="pl-kos">{</span> item_ids<span class="pl-kos">,</span> constant_length<span class="pl-kos">,</span> offsets<span class="pl-kos">,</span> <span class="pl-c1">_marker</span><span class="pl-kos">:</span> marker<span class="pl-kos">::</span><span class="pl-v">PhantomData</span> <span class="pl-kos">}</span><span class="pl-kos">)</span>
+    <span class="pl-kos">}</span>
+
+    <span class="pl-k">pub</span> <span class="pl-k">fn</span> <span class="pl-en">get</span><span class="pl-kos">(</span><span class="pl-c1">&amp;</span><span class="pl-smi">self</span><span class="pl-kos">,</span> <span class="pl-s1">item_id</span><span class="pl-kos">:</span> <span class="pl-smi">ItemId</span><span class="pl-kos">)</span> -&gt; heed<span class="pl-kos">::</span><span class="pl-smi">Result</span><span class="pl-kos">&lt;</span><span class="pl-smi">Option</span><span class="pl-kos">&lt;</span><span class="pl-smi">Leaf</span><span class="pl-kos">&lt;</span><span class="pl-c1">'</span><span class="pl-ent">t</span><span class="pl-kos">,</span> <span class="pl-smi">D</span><span class="pl-kos">&gt;</span><span class="pl-kos">&gt;</span><span class="pl-kos">&gt;</span> <span class="pl-kos">{</span>
+        <span class="pl-k">let</span> len = <span class="pl-k">match</span> <span class="pl-smi">self</span><span class="pl-kos">.</span><span class="pl-c1">constant_length</span> <span class="pl-kos">{</span>
+            <span class="pl-v">Some</span><span class="pl-kos">(</span>len<span class="pl-kos">)</span> =&gt; len<span class="pl-kos">,</span>
+            <span class="pl-v">None</span> =&gt; <span class="pl-k">return</span> <span class="pl-en">Ok</span><span class="pl-kos">(</span><span class="pl-v">None</span><span class="pl-kos">)</span><span class="pl-kos">,</span>
+        <span class="pl-kos">}</span><span class="pl-kos">;</span>
+        <span class="pl-k">let</span> ptr = <span class="pl-k">match</span> <span class="pl-smi">self</span><span class="pl-kos">.</span><span class="pl-c1">item_ids</span><span class="pl-kos">.</span><span class="pl-en">rank</span><span class="pl-kos">(</span>item_id<span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-en">checked_sub</span><span class="pl-kos">(</span><span class="pl-c1">1</span><span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-en">and_then</span><span class="pl-kos">(</span>|offset| <span class="pl-smi">self</span><span class="pl-kos">.</span><span class="pl-c1">offsets</span><span class="pl-kos">.</span><span class="pl-en">get</span><span class="pl-kos">(</span>offset<span class="pl-kos">)</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+            <span class="pl-v">Some</span><span class="pl-kos">(</span>ptr<span class="pl-kos">)</span> =&gt; <span class="pl-c1">*</span>ptr<span class="pl-kos">,</span>
+            <span class="pl-v">None</span> =&gt; <span class="pl-k">return</span> <span class="pl-en">Ok</span><span class="pl-kos">(</span><span class="pl-v">None</span><span class="pl-kos">)</span><span class="pl-kos">,</span>
+        <span class="pl-kos">}</span><span class="pl-kos">;</span>
+        <span class="pl-k">let</span> bytes = <span class="pl-k">unsafe</span> <span class="pl-kos">{</span> slice<span class="pl-kos">::</span><span class="pl-en">from_raw_parts</span><span class="pl-kos">(</span>ptr<span class="pl-kos">,</span> len<span class="pl-kos">)</span> <span class="pl-kos">}</span><span class="pl-kos">;</span>
+        <span class="pl-smi">ItemCodec</span><span class="pl-kos">::</span><span class="pl-en">bytes_decode</span><span class="pl-kos">(</span>bytes<span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-en">map</span><span class="pl-kos">(</span><span class="pl-v">Some</span><span class="pl-kos">)</span>
+    <span class="pl-kos">}</span>
+<span class="pl-kos">}</span>
+
+<span class="pl-k">unsafe</span> <span class="pl-k">impl</span><span class="pl-kos">&lt;</span><span class="pl-smi">D</span><span class="pl-kos">&gt;</span> <span class="pl-smi">Sync</span> <span class="pl-k">for</span> <span class="pl-smi">ImmutableItems</span><span class="pl-kos">&lt;</span><span class="pl-c1">'</span><span class="pl-ent">_</span><span class="pl-kos">,</span> <span class="pl-smi">D</span><span class="pl-kos">&gt;</span> <span class="pl-kos">{</span><span class="pl-kos">}</span></pre></div>
+<p dir="auto">You have also probably noticed some other fun optimizations in this simplified version of the data structure. We also know that the user-item nodes have a constant length, so I decided to store it only once, reducing the offsets vector's size by two. Considering that our objective is to store 100M vectors and that this vector is in memory, we shrunk its size from 1526 MiB to 763MiB, which is not much, but better than nothing.</p>
+<h4 id="writing-the-tree-nodes-in-parallel" dir="auto"><a href="#writing-the-tree-nodes-in-parallel">Writing the Tree Nodes in Parallel</a></h4>
+<p dir="auto">Ok! Now that we know how to store pointers to items and share them between threads without any user-end synchronization, we need to generate the tree nodes using it. We already know how to deal with LMDB at Meilisearch and decided to implement the same workaround. To write in parallel into LMDB, write into different, independent files and merge everything afterward. This leverages the <a href="https://en.wikipedia.org/wiki/Shared-nothing_architecture" rel="nofollow">Share-Nothing principle</a> and isolates the algorithms. This drastically reduces the number of synchronization points <a href="https://github.com/spotify/annoy/blob/2be37c9e015544be2cf60c431f0cccc076151a2d/src/annoylib.h#L1344-L1445">compared to the original C++ code</a> (look at the <code class="notranslate">.lock/unlock</code> calls) to a single line in our code: the atomically increasing global tree node ID.</p>
+<div class="highlight highlight-source-rust notranslate position-relative overflow-auto" data-snippet-clipboard-copy-content="pub fn next_node_id(&amp;self) -> u64 {
+    self.0.fetch_add(1, Ordering::Relaxed)
+}" dir="auto"><pre class="notranslate"><span class="pl-k">pub</span> <span class="pl-k">fn</span> <span class="pl-en">next_node_id</span><span class="pl-kos">(</span><span class="pl-c1">&amp;</span><span class="pl-smi">self</span><span class="pl-kos">)</span> -&gt; <span class="pl-smi">u64</span> <span class="pl-kos">{</span>
+    <span class="pl-smi">self</span><span class="pl-kos">.</span><span class="pl-c1">0</span><span class="pl-kos">.</span><span class="pl-en">fetch_add</span><span class="pl-kos">(</span><span class="pl-c1">1</span><span class="pl-kos">,</span> <span class="pl-smi">Ordering</span><span class="pl-kos">::</span><span class="pl-v">Relaxed</span><span class="pl-kos">)</span>
+<span class="pl-kos">}</span></pre></div>
+<p dir="auto">Our functions that generate normal split nodes based on the user-item nodes are now simply writing the nodes into independent files. The <a href="https://github.com/meilisearch/arroy/blob/4f193fd534acd357b65bfe9eec4b3fed8ece2007/src/parallel.rs#L20-L71">nodes are appended into a file</a>, and the on-disk offsets and bounds are stored into a vector, a single <code class="notranslate">usize</code> by node. Using Rayon, we run all tree-generation functions in parallel and, once completed, retrieve the files and boundaries to write the uniquely identified nodes into LMDB sequentially.</p>
+<h3 id="performances-comparison" dir="auto"><a href="#performances-comparison">Performances Comparison</a></h3>
+<p dir="auto">Our objective at Meilisearch is to support 100M embedding of around 768 dimensions. If we store those as <code class="notranslate">f32</code> vectors without any <a href="https://en.wikipedia.org/wiki/Dimensionality_reduction" rel="nofollow">dimensionality reduction</a>, it would be equivalent to <code class="notranslate">100M * 768 * 4 = 307B</code>, in other words, 286 GiB to store the vectors raw, without any internal tree nodes, i.e., no way to search in them efficiently.</p>
+<p dir="auto">If you don't specify the number of trees to generate, the algorithm will continue to create trees while the number of tree nodes is smaller than the number of item vectors. At the end, there must be roughly the same number of tree nodes and items.</p>
+<h4 id="discovering-the-limit-of-vectors-we-can-index" dir="auto"><a href="#discovering-the-limit-of-vectors-we-can-index">Discovering the Limit of Vectors We Can Index</a></h4>
+<p dir="auto">Arroy and Annoy use memory mapping extensively but in slightly different ways. In a previous article from <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/dureuill/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/dureuill">@dureuill</a>, we saw that <a href="https://blog.meilisearch.com/dynamic-virtual-address-management/" rel="nofollow">operating systems do not have infinite memory-map space</a>. So, let's dive into performance results.</p>
+<p dir="auto">I noticed something strange when running Arroy with 25M vectors of 768 dimensions. The CPUs were not used, and the program seemed to read the SSD/NVMe a lot, too much 🤔 The tree generation algorithm is splitting the vector space into subdomains with fewer vectors. Still, it must first find the appropriate normal to split the entire domain, and for that, it randomly selects many items. Unfortunately, my machine only has 63 GiB of memory, and indexing those 25M items requires more than 72 Gib. Annoy was also struggling in the same way.</p>
+<p dir="auto"><a href="assets/images/72ca3e80da5bf11a.png" rel="noopener noreferrer" target="_blank"><img alt="We cannot index 25M vectors of 768 dimensions with 63 GiB" src="assets/images/72ca3e80da5bf11a.png" style="max-width: 100%;"></a></p>
+<p dir="auto">After investigating, I understood why the whole swap space and memory mapping limits were reached. The item nodes were not only <em>768 * 4 bytes</em> because we store the norm and other stuff alongside the vectors, but in the case of Arroy, LMDB needs to maintain BTree data structures around the entries, and those are also tacking memory-mapped space. Both programs request random item nodes unavailable in memory, so the OS fetches them from the disk, which takes time. Ho and every single thread is doing that in parallel. CPUs are simply awaiting the disk.</p>
+<p dir="auto">So, after some dichotomy, I found the point where arroy successfully used all of the memory without being bound to the disk speed. It can index 15.625M on a 63 GiB machine. You can see on this htop screenshot that the disk read speed is at zero as all of the vectors fit in RAM, that arroy is writing the tree nodes to disk, and that the CPUs are doing their best. It took less than seven hours to process.</p>
+<p dir="auto"><a href="assets/images/f34ecbd22b8689d3.png" rel="noopener noreferrer" target="_blank"><img alt="Successfully indexing 15.6M vector of 768 dimensions with 63 GiB" src="assets/images/f34ecbd22b8689d3.png" style="max-width: 100%;"></a></p>
+<p dir="auto">But... Annoy cannot index this same number of documents. It suffers from the same issue we saw before: high disk read and low CPU usage. But why? I needed clarification because the nodes have the same format, the number of item vectors to index is the same, and the algorithm has been ported. So, what is the difference between both solutions?</p>
+<p dir="auto">For those who looked into the C++ codebase and were probably hinted by the memory mapping issue described earlier, you probably noticed this slight difference: Arroy is writing the generated tree nodes into different raw files when Annoy, on the contrary, is <a href="https://github.com/spotify/annoy/blob/2be37c9e015544be2cf60c431f0cccc076151a2d/src/annoylib.h#L1354-L1370">reserving space into the memory-mapped file and directly writing into it</a>. By doing this trick, the OS needs to keep much more space in the memory-mapped area and is forced to invalidate the item nodes from the cache to keep the just-written tree nodes hot in the cache, slowing down the system for no reason, as the tree nodes are not necessary for the algorithm.</p>
+<p dir="auto">So, after even more dichotomy to find the Annoy limits on a 63 GiB machine, I discovered that it could roughly index 10M vectors in five hours.</p>
+<h4 id="the-share-nothing-principle-to-the-win" dir="auto"><a href="#the-share-nothing-principle-to-the-win">The Share Nothing Principle to the Win</a></h4>
+<p dir="auto">So Arroy can index 36% more vectors on the same machine, but how long does it take? Wouldn't it be faster to write into the same file in parallel instead of copying all those tree nodes in a single-threaded way? It will be a much shorter paragraph as I only did some small tests, but Arroy is always faster!</p>
+<markdown-accessiblity-table><table class="table table-striped" role="table">
+<thead>
+<tr>
+<th></th>
+<th>number of vectors</th>
+<th>number of threads</th>
+<th>building time</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Annoy</td>
+<td>96k</td>
+<td>1</td>
+<td>5min 38s</td>
+</tr>
+<tr>
+<td>arroy</td>
+<td>96k</td>
+<td>1</td>
+<td><strong>3min 45s</strong></td>
+</tr>
+<tr>
+<td>Annoy</td>
+<td>96k</td>
+<td>12</td>
+<td>1min 9s</td>
+</tr>
+<tr>
+<td>arroy</td>
+<td>96k</td>
+<td>12</td>
+<td><strong>54s</strong></td>
+</tr>
+<tr>
+<td>Annoy</td>
+<td>10M</td>
+<td>12</td>
+<td>5h 40min</td>
+</tr>
+<tr>
+<td>arroy</td>
+<td>10M</td>
+<td>12</td>
+<td><strong>4h 17min</strong></td>
+</tr>
+<tr>
+<td>Annoy</td>
+<td>15.625M</td>
+<td>12</td>
+<td>--</td>
+</tr>
+<tr>
+<td>arroy</td>
+<td>15.625M</td>
+<td>12</td>
+<td><strong>7h 22min</strong></td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">Now, you probably tell me that I will need around 400GiB of memory to index 100M vectors, and you are probably right, but <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/irevoire/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/irevoire">@irevoire</a> will talk about incremental indexing in a future article. I did a linear regression for fun. With those 12 threads and the required memory, I predicted it would take one day, 22 hours, and 43 min 😬. Ho! As we also use this vector store in Meilisearch, we need to provide ways to filter this data structure at search time. This is the next article in this series.</p>
+<p dir="auto">You can comment about this article on <a href="https://lobste.rs/s/87aheu/multithreading_memory_mapping_refining" rel="nofollow">Lobste.rs</a>, <a href="https://news.ycombinator.com/" rel="nofollow">Hacker News</a>, <a href="https://old.reddit.com/r/rust/comments/18jmuoe/multithreading_and_memorymapping_refining_ann" rel="nofollow">the Rust Subreddit</a>, or <a href="https://x.com/Kerollmops/status/1735941213516140814" rel="nofollow">X (formerly Twitter)</a>.</p></body></html>
+    </article>
+
+    <div class="vote-emojis">
+    <a class="btn btn-outline-secondary vote-emoji" href="https://github.com/Kerollmops/blog/issues/4#comment-composer-heading" role="button">🙂 ✚</a>
+
+    
+
+    
+
+    
+
+    
+        <a class="btn btn-outline-secondary vote-emoji" href="https://github.com/Kerollmops/blog/issues/4#comment-composer-heading" role="button">❤️ 1</a>
+    
+
+    
+        <a class="btn btn-outline-secondary vote-emoji" href="https://github.com/Kerollmops/blog/issues/4#comment-composer-heading" role="button">🎉 1</a>
+    
+
+    
+
+    
+        <a class="btn btn-outline-secondary vote-emoji" href="https://github.com/Kerollmops/blog/issues/4#comment-composer-heading" role="button">🚀 1</a>
+    
+
+    
+    </div>
+
+    <div class="tiny-utterances"
+        data-repo-owner="Kerollmops"
+        data-repo-name="blog"
+        data-issue-number="4"
+        data-max-comments="10">
+        <a class="tu-button"
+            href="https://github.com/Kerollmops/blog/issues/4#comment-composer-heading">
+            5 comments, join the discussion
+        </a>
+    </div>
+
+
+      
+  <footer class="profil text-center">
+    <p class="long-text text-uppercase">About Clément Renault</p>
+    <p class="text-center">I am the co-founder and CTO of <a href="https://github.com/meilisearch">@meilisearch</a>. I learned coding at the Paris <a href="https://github.com/42school">@42school</a>. I live in Paris and love video games.</p>
+    <hr class="mb-3"/>
+    <p class="text-center">Subscribe to <a href="/atom.xml">my RSS/Atom feed</a> for the latest updates and articles.</p>
+  </footer>
+
+    </div>
+  </body>
+</html>

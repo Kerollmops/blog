@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="auto">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script defer data-domain="blog.kerollmops.com" src="https://plausible.io/js/script.js"></script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦀</text></svg>">
+    <script type="application/javascript" src="/assets/script.js"></script>
+    <script defer type="application/javascript" src="/assets/tiny-utterances.js"></script>
+    <script type="application/javascript" src="/assets/matter.min.js"></script>
+    <script type="application/javascript" src="/assets/balls.js"></script>
+    <link href="assets/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/style.css" rel="stylesheet">
+    <link href="assets/tiny-utterances.css" rel="stylesheet">
+
+    <!-- Primary Meta Tags -->
+    <title>Meilisearch Indexes Embeddings 7x Faster with Binary Quantization</title>
+    <meta name="title" content="Meilisearch Indexes Embeddings 7x Faster with Binary Quantization" />
+    <meta name="description" content=" Let's explore the use of binary quantization as a powerful technique in search technology. By implementing binary quantization with the vector store, Arroy, significant reductions in disk space usage and indexing time for large embeddings have been achieved while maintaining search relevance and efficiency. " />
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://blog.kerollmops.com/meilisearch-indexes-embeddings-7x-faster-with-binary-quantization" />
+    <meta property="og:title" content="Meilisearch Indexes Embeddings 7x Faster with Binary Quantization" />
+    <meta property="og:description" content=" Let's explore the use of binary quantization as a powerful technique in search technology. By implementing binary quantization with the vector store, Arroy, significant reductions in disk space usage and indexing time for large embeddings have been achieved while maintaining search relevance and efficiency. " />
+    <meta property="og:image" content="https://blog.kerollmops.com/preview/meilisearch-indexes-embeddings-7x-faster-with-binary-quantization.png" />
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="Meilisearch Indexes Embeddings 7x Faster with Binary Quantization" />
+    <meta property="twitter:title" content="Meilisearch Indexes Embeddings 7x Faster with Binary Quantization" />
+    <meta property="twitter:description" content=" Let's explore the use of binary quantization as a powerful technique in search technology. By implementing binary quantization with the vector store, Arroy, significant reductions in disk space usage and indexing time for large embeddings have been achieved while maintaining search relevance and efficiency. " />
+    <meta property="twitter:image" content="https://blog.kerollmops.com/preview/meilisearch-indexes-embeddings-7x-faster-with-binary-quantization.png" />
+
+    
+  <meta name="description" content="Article by Tamo titled: Meilisearch Indexes Embeddings 7x Faster with Binary Quantization.">
+  <link rel="stylesheet" href="/assets/starry-night.css">
+  <style></style>
+
+  </head>
+  <body>
+    <canvas id="ballsCanvas"></canvas>
+    <div class="container">
+      
+<header class="profil">
+  <a href="/">
+      <div class="text-center">
+          <img src="https://avatars.githubusercontent.com/u/7032172?v=4&s=100" class="profil-picture" alt="Profil picture of Tamo">
+          <p class="long-text text-uppercase">Tamo</p>
+      </div>
+  </a>
+</header>
+
+
+      
+    <p class="text-center">
+        <small class="text-body-secondary"><i>November 29, 2024</i> — <a href="https://github.com/Kerollmops/blog/issues/16#comment-composer-heading">0 comments</a></small>
+    </p>
+    <article>
+        <h1 class="mb-4 text-center">Meilisearch Indexes Embeddings 7x Faster with Binary Quantization</h1>
+
+        <html><head></head><body><div class="markdown-alert markdown-alert-note" dir="auto"><p class="markdown-alert-title" dir="auto"><svg aria-hidden="true" class="octicon octicon-info mr-2" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p><p dir="auto">This is one blog post in a series:</p>
+<ul dir="auto">
+<li><a href="https://blog.kerollmops.com/spotify-inspired-elevating-meilisearch-with-hybrid-search-and-rust" rel="nofollow">Spotify-Inspired: Elevating Meilisearch with Hybrid Search and Rust</a>,</li>
+<li><a href="https://blog.kerollmops.com/multithreading-and-memory-mapping-refining-ann-performance-with-arroy-in-rust" rel="nofollow">Multithreading and Memory-Mapping: Refining ANN Performance with Arroy</a>,</li>
+<li><a href="https://blog.kerollmops.com/meilisearch-expands-search-power-with-arroy-s-filtered-disk-ann" rel="nofollow">Meilisearch Expands Search Power with Arroy's Filtered Disk ANN</a>,</li>
+<li><a href="https://blog.kerollmops.com/how-meilisearch-updates-a-millions-vector-embeddings-database-in-under-a-minute" rel="nofollow">How Meilisearch Updates a Millions Vector Embeddings Database in Under a Minute</a>.</li>
+<li>Meilisearch Indexes Embeddings 7x Faster with Binary Quantization.</li>
+</ul>
+</div>
+<p dir="auto">For the past year at Meilisearch, <a data-hovercard-type="issue" data-hovercard-url="/meilisearch/meilisearch/issues/3838/hovercard" href="https://github.com/meilisearch/meilisearch/issues/3838">we’ve been working hard on hybrid search</a>, which mixes keyword search with semantic search using <a href="https://blog.kerollmops.com/spotify-inspired-elevating-meilisearch-with-hybrid-search-and-rust" rel="nofollow">Arroy: our vector store, based on a Spotify technology</a>. A vector store is a data structure that efficiently stores embeddings (vectors) for fast and relevant retrieval, called Approximate Nearest Neighbors (ANN) search.</p>
+<p dir="auto">When our customers started to use arroy heavily, some of them started reaching the machine limits. For example, for a customer with a 768 dimensions model, we found out that we couldn’t index more than 15M of embeddings on a machine with 64GiB of RAM.</p>
+<h3 id="binary-quantization-to-the-rescue" dir="auto"><a href="#binary-quantization-to-the-rescue">Binary Quantization to the Rescue</a></h3>
+<p dir="auto">The concept behind this elaborate term is that we are going to <em>quantize</em> the embeddings. Quantizing a number involves spreading it into a defined number of values; for <em>binary</em> quantization, two values can be represented on a single bit, e.g., 0.2561 becomes 1, and -0.568 becomes -1.</p>
+<p dir="auto">This implies that we could convert a 32-bit float number into a 1-bit number, which would divide the disk and RAM usage by 32. That would mean we could index up to 480M embeddings with 64GiB of RAM, instead of being limited to 15M embeddings.</p>
+<p dir="auto">An issue we faced is that bits cannot represent -1 and 1 but only 0 and 1. We had to use some tricks to make it work and fake 0s into -1s in our computations. For example, one of the functions that we had to optimize a lot was the function in charge of converting a binary quantized vector to 32-bit float vectors.</p>
+<p dir="auto">We do not publicly expose raw quantized embeddings and utilize this function to provide real 32-bit float embeddings to the users. However, the primary reason for converting 1-bit quantized embeddings to 32-bit floats is to ensure high precision when <a href="https://blog.kerollmops.com/spotify-inspired-elevating-meilisearch-with-hybrid-search-and-rust#spotify-s-hyperplane-trees-for-efficient-anns" rel="nofollow">generating hyperplanes to group embeddings together</a> and maintaining relevant ANNs.</p>
+<p dir="auto"><a href="assets/images/d63c82b23cdec91c.png" rel="noopener noreferrer" target="_blank"><img alt="Profiling backtrace showing slow 1-bit to 32-bit float conversion" src="assets/images/d63c82b23cdec91c.png" style="max-width: 100%;"></a></p>
+<p align="center" dir="auto"><i>Converting a quantized embedding back to 32-bit floating points takes up to 24.21s on a 1m53s run.</i></p>
+<p dir="auto">Below is the SIMD neon-specific version of this function. It processes raw bytes corresponding to a 1-bit quantized embedding, converting them into a properly aligned 32-bit float embedding. Using masks, the function separates the low and high bits, processing them in batches of four in 128-bit registers, which are then transformed into four 32-bit floats. These values are collectively written to the output vector.</p>
+<div class="highlight highlight-source-rust notranslate position-relative overflow-auto" data-snippet-clipboard-copy-content="unsafe fn to_vec_neon(bytes: &amp;[u8]) -> Vec<f32> {
+    let mut output: Vec<f32> = vec![0.0; bytes.len() / u32::BITS];
+    let output_ptr = output.as_mut_ptr();
+    let low_mask = [0b_0000_0001, 0b_0000_0010, 0b_0000_0100, 0b_0000_1000];
+    let high_mask = [0b_0001_0000, 0b_0010_0000, 0b_0100_0000, 0b_1000_0000];
+    let ones = unsafe { vld1q_dup_f32(&amp;1.0) };
+    let minus = unsafe { vld1q_dup_f32(&amp;-1.0) };
+
+    for (current_byte, base) in bytes.iter().enumerate() {
+        unsafe {
+            let base = *base as u32;
+            let base = vld1q_dup_u32(&amp;base);
+            for (i, mask) in [low_mask, high_mask].iter().enumerate() {
+                let mask = vld1q_u32(mask.as_ptr());
+                let mask = vandq_u32(base, mask);
+                // 0xffffffff if equal to zero and 0x00000000 otherwise
+                let mask = vceqzq_u32(mask);
+                let lane = vbslq_f32(mask, minus, ones);
+                let offset = output_ptr.add(current_byte * 8 + i * 4);
+                vst1q_f32(offset, lane);
+            }
+        }
+    }
+
+    output
+}" dir="auto"><pre class="notranslate"><span class="pl-k">unsafe</span> <span class="pl-k">fn</span> <span class="pl-en">to_vec_neon</span><span class="pl-kos">(</span><span class="pl-s1">bytes</span><span class="pl-kos">:</span> <span class="pl-c1">&amp;</span><span class="pl-kos">[</span><span class="pl-smi">u8</span><span class="pl-kos">]</span><span class="pl-kos">)</span> -&gt; <span class="pl-smi">Vec</span><span class="pl-kos">&lt;</span><span class="pl-smi">f32</span><span class="pl-kos">&gt;</span> <span class="pl-kos">{</span>
+    <span class="pl-k">let</span> <span class="pl-k">mut</span> output<span class="pl-kos">:</span> <span class="pl-smi">Vec</span><span class="pl-kos">&lt;</span><span class="pl-smi">f32</span><span class="pl-kos">&gt;</span> = <span class="pl-en">vec</span><span class="pl-en">!</span><span class="pl-kos">[</span><span class="pl-c1">0.0</span><span class="pl-kos">;</span> bytes<span class="pl-kos">.</span>len<span class="pl-kos">(</span><span class="pl-kos">)</span> / <span class="pl-smi">u32</span><span class="pl-kos">::</span><span class="pl-v">BITS</span><span class="pl-kos">]</span><span class="pl-kos">;</span>
+    <span class="pl-k">let</span> output_ptr = output<span class="pl-kos">.</span><span class="pl-en">as_mut_ptr</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-k">let</span> low_mask = <span class="pl-kos">[</span><span class="pl-c1">0b_0000_0001</span><span class="pl-kos">,</span> <span class="pl-c1">0b_0000_0010</span><span class="pl-kos">,</span> <span class="pl-c1">0b_0000_0100</span><span class="pl-kos">,</span> <span class="pl-c1">0b_0000_1000</span><span class="pl-kos">]</span><span class="pl-kos">;</span>
+    <span class="pl-k">let</span> high_mask = <span class="pl-kos">[</span><span class="pl-c1">0b_0001_0000</span><span class="pl-kos">,</span> <span class="pl-c1">0b_0010_0000</span><span class="pl-kos">,</span> <span class="pl-c1">0b_0100_0000</span><span class="pl-kos">,</span> <span class="pl-c1">0b_1000_0000</span><span class="pl-kos">]</span><span class="pl-kos">;</span>
+    <span class="pl-k">let</span> ones = <span class="pl-k">unsafe</span> <span class="pl-kos">{</span> <span class="pl-en">vld1q_dup_f32</span><span class="pl-kos">(</span><span class="pl-c1">&amp;</span><span class="pl-c1">1.0</span><span class="pl-kos">)</span> <span class="pl-kos">}</span><span class="pl-kos">;</span>
+    <span class="pl-k">let</span> minus = <span class="pl-k">unsafe</span> <span class="pl-kos">{</span> <span class="pl-en">vld1q_dup_f32</span><span class="pl-kos">(</span><span class="pl-c1">&amp;</span>-<span class="pl-c1">1.0</span><span class="pl-kos">)</span> <span class="pl-kos">}</span><span class="pl-kos">;</span>
+
+    <span class="pl-k">for</span> <span class="pl-kos">(</span>current_byte<span class="pl-kos">,</span> base<span class="pl-kos">)</span> <span class="pl-k">in</span> bytes<span class="pl-kos">.</span><span class="pl-en">iter</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-en">enumerate</span><span class="pl-kos">(</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+        <span class="pl-k">unsafe</span> <span class="pl-kos">{</span>
+            <span class="pl-k">let</span> base = <span class="pl-c1">*</span>base <span class="pl-k">as</span> <span class="pl-smi">u32</span><span class="pl-kos">;</span>
+            <span class="pl-k">let</span> base = <span class="pl-en">vld1q_dup_u32</span><span class="pl-kos">(</span><span class="pl-c1">&amp;</span>base<span class="pl-kos">)</span><span class="pl-kos">;</span>
+            <span class="pl-k">for</span> <span class="pl-kos">(</span>i<span class="pl-kos">,</span> mask<span class="pl-kos">)</span> <span class="pl-k">in</span> <span class="pl-kos">[</span>low_mask<span class="pl-kos">,</span> high_mask<span class="pl-kos">]</span><span class="pl-kos">.</span><span class="pl-en">iter</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-en">enumerate</span><span class="pl-kos">(</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+                <span class="pl-k">let</span> mask = <span class="pl-en">vld1q_u32</span><span class="pl-kos">(</span>mask<span class="pl-kos">.</span><span class="pl-en">as_ptr</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+                <span class="pl-k">let</span> mask = <span class="pl-en">vandq_u32</span><span class="pl-kos">(</span>base<span class="pl-kos">,</span> mask<span class="pl-kos">)</span><span class="pl-kos">;</span>
+                <span class="pl-c">// 0xffffffff if equal to zero and 0x00000000 otherwise</span>
+                <span class="pl-k">let</span> mask = <span class="pl-en">vceqzq_u32</span><span class="pl-kos">(</span>mask<span class="pl-kos">)</span><span class="pl-kos">;</span>
+                <span class="pl-k">let</span> lane = <span class="pl-en">vbslq_f32</span><span class="pl-kos">(</span>mask<span class="pl-kos">,</span> minus<span class="pl-kos">,</span> ones<span class="pl-kos">)</span><span class="pl-kos">;</span>
+                <span class="pl-k">let</span> offset = output_ptr<span class="pl-kos">.</span><span class="pl-en">add</span><span class="pl-kos">(</span>current_byte <span class="pl-c1">*</span> <span class="pl-c1">8</span> + i <span class="pl-c1">*</span> <span class="pl-c1">4</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+                <span class="pl-en">vst1q_f32</span><span class="pl-kos">(</span>offset<span class="pl-kos">,</span> lane<span class="pl-kos">)</span><span class="pl-kos">;</span>
+            <span class="pl-kos">}</span>
+        <span class="pl-kos">}</span>
+    <span class="pl-kos">}</span>
+
+    output
+<span class="pl-kos">}</span></pre></div>
+<p align="center" dir="auto"><i><a href="https://x.com/lemire/status/1835700368648323261" rel="nofollow">Daniel Lemire doesn't seem to have found a better algorithm</a></i> 🤭</p>
+<h3 id="the-results" dir="auto"><a href="#the-results">The Results</a></h3>
+<p dir="auto">We chatted about the theoretical benefits of this approach earlier, but how does it work out in real life? Here are different tables summarizing the results for you.</p>
+<details>
+  <summary>Open to see the original benchmarks</summary>
+  <a href="assets/images/1033f05ee3d5c462.png" rel="noopener noreferrer nofollow" target="_blank"><img alt="Original arroy benchmark results" data-canonical-src="https://i.imgur.com/gfwebkY.png" src="assets/images/1033f05ee3d5c462.png" style="max-width: 100%;"></a>
+</details>
+<h4 id="embeddings-with-1024-dimensions" dir="auto"><a href="#embeddings-with-1024-dimensions">Embeddings with 1024 Dimensions</a></h4>
+<p dir="auto">When examining small embeddings, we can observe a significant impact on relevancy due to binary quantization. The primary advantages of this approach lie in faster insertion times and reduced storage requirements. It is not advisable to enable this feature for small embeddings, as they already occupy minimal disk space. Storing over four million 1024-dimensional embeddings requires just 8 GiB of disk space.</p>
+<markdown-accessiblity-table><table class="table table-striped" role="table">
+<thead>
+<tr>
+<th>Version</th>
+<th>Recall <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/1/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/1">@1</a></th>
+<th>Recall <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/20/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/20">@20</a></th>
+<th>Recall <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/100/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/100">@100</a></th>
+<th>Indexing time</th>
+<th>Search time</th>
+<th>On disk size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cosine</td>
+<td><strong>1.00</strong></td>
+<td><strong>0.72</strong></td>
+<td><strong>0.84</strong></td>
+<td>491s</td>
+<td><strong>23s</strong></td>
+<td>8 GiB</td>
+</tr>
+<tr>
+<td>Binary Quantized Cosine</td>
+<td>0.87</td>
+<td>0.50</td>
+<td>0.52</td>
+<td><strong>147s</strong></td>
+<td>27s</td>
+<td><strong>850 MiB</strong></td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h4 id="embeddings-with-1536-dimensions" dir="auto"><a href="#embeddings-with-1536-dimensions">Embeddings with 1536 Dimensions</a></h4>
+<p dir="auto">Binary quantization proves advantageous for managing larger embeddings. It significantly reduces search times, utilizing just 15% of the original disk space. Indexing about 500,000 1536-dimensional embeddings is achieved in a quarter of the time. Despite this, there remains a noticeable impact on relevancy...</p>
+<markdown-accessiblity-table><table class="table table-striped" role="table">
+<thead>
+<tr>
+<th>Version</th>
+<th>Recall <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/1/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/1">@1</a></th>
+<th>Recall <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/20/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/20">@20</a></th>
+<th>Recall <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/100/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/100">@100</a></th>
+<th>Indexing time</th>
+<th>Search time</th>
+<th>On disk size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cosine</td>
+<td><strong>1.00</strong></td>
+<td><strong>0.82</strong></td>
+<td><strong>0.90</strong></td>
+<td>1219s</td>
+<td>50s</td>
+<td>13 GiB</td>
+</tr>
+<tr>
+<td>Binary Quantized Cosine</td>
+<td><strong>1.00</strong></td>
+<td>0.70</td>
+<td>0.70</td>
+<td><strong>235s</strong></td>
+<td><strong>47s</strong></td>
+<td><strong>2 GiB</strong></td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h4 id="embeddings-with-3072-dimensions" dir="auto"><a href="#embeddings-with-3072-dimensions">Embeddings with 3072 Dimensions</a></h4>
+<p dir="auto">The impact of binary quantization on large embeddings is evident. While relevance may be slightly affected, the reduction in disk usage, search time, and indexing time is significant. Being able to store the same number of embeddings with just 15% of the space and index 6 times faster is a major achievement! It takes half as much disk space to store a million 3072-dimensional binary quantized embeddings than four million 1024-dimensional embeddings.</p>
+<markdown-accessiblity-table><table class="table table-striped" role="table">
+<thead>
+<tr>
+<th>Version</th>
+<th>Recall <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/1/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/1">@1</a></th>
+<th>Recall <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/20/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/20">@20</a></th>
+<th>Recall <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/100/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/100">@100</a></th>
+<th>Indexing time</th>
+<th>Search time</th>
+<th>On disk size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cosine</td>
+<td><strong>1.00</strong></td>
+<td><strong>0.86</strong></td>
+<td><strong>0.92</strong></td>
+<td>4000s</td>
+<td>150s</td>
+<td>26 GiB</td>
+</tr>
+<tr>
+<td>Binary Quantized Cosine</td>
+<td><strong>1.00</strong></td>
+<td>0.77</td>
+<td>0.77</td>
+<td><strong>560s</strong></td>
+<td><strong>100s</strong></td>
+<td><strong>4 GiB</strong></td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h3 id="conclusion" dir="auto"><a href="#conclusion">Conclusion</a></h3>
+<p dir="auto">The impact of binary quantization on recall was expected to decrease, given the reduced information in the algorithm. However, for datasets with over 1500 dimensions, the impact on recall is relatively minor compared to the significant benefits in disk space and indexing speed.</p>
+<p dir="auto">In practice, we observed that space utilization decreased not by 32 times but by just 15% of the original space, a notable achievement. This is primarily due to arroy storing not only user vectors but also internal nodes for efficient searching. Split nodes (hyperplanes) are retained as full 32-bit floats to maintain precision.</p>
+<ul dir="auto">
+<li>Indexing speed improves nearly 5 times with 1536 dimensions and about 7 times with 3072 dimensions.</li>
+<li>Disk size shrinks to around 6.5 times smaller.</li>
+<li>Search time shows slight improvements for embeddings starting at 1536 dimensions.</li>
+</ul>
+<p dir="auto">We recommend using Meilisearch/arroy's binary quantization feature for OpenAI users with large embeddings. In an upcoming article, we will compare Meilisearch/arroy with competitors, focusing on our Filtered DiskANN feature. Stay tuned!</p></body></html>
+    </article>
+
+    <div class="vote-emojis">
+    <a class="btn btn-outline-secondary vote-emoji" href="https://github.com/Kerollmops/blog/issues/16#comment-composer-heading" role="button">🙂 ✚</a>
+
+    
+
+    
+
+    
+
+    
+        <a class="btn btn-outline-secondary vote-emoji" href="https://github.com/Kerollmops/blog/issues/16#comment-composer-heading" role="button">❤️ 3</a>
+    
+
+    
+        <a class="btn btn-outline-secondary vote-emoji" href="https://github.com/Kerollmops/blog/issues/16#comment-composer-heading" role="button">🎉 3</a>
+    
+
+    
+
+    
+
+    
+    </div>
+
+    <div class="tiny-utterances"
+        data-repo-owner="Kerollmops"
+        data-repo-name="blog"
+        data-issue-number="16"
+        data-max-comments="10">
+        <a class="tu-button"
+            href="https://github.com/Kerollmops/blog/issues/16#comment-composer-heading">
+            0 comments, join the discussion
+        </a>
+    </div>
+
+
+      
+  <footer class="profil text-center">
+    <p class="long-text text-uppercase">About Tamo</p>
+    <p class="text-center">I like rust</p>
+    <hr class="mb-3"/>
+    <p class="text-center">Subscribe to <a href="/atom.xml">my RSS/Atom feed</a> for the latest updates and articles.</p>
+  </footer>
+
+    </div>
+  </body>
+</html>

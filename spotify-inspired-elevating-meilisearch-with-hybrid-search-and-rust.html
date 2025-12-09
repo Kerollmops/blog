@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="auto">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script defer data-domain="blog.kerollmops.com" src="https://plausible.io/js/script.js"></script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦀</text></svg>">
+    <script type="application/javascript" src="/assets/script.js"></script>
+    <script defer type="application/javascript" src="/assets/tiny-utterances.js"></script>
+    <script type="application/javascript" src="/assets/matter.min.js"></script>
+    <script type="application/javascript" src="/assets/balls.js"></script>
+    <link href="assets/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/style.css" rel="stylesheet">
+    <link href="assets/tiny-utterances.css" rel="stylesheet">
+
+    <!-- Primary Meta Tags -->
+    <title>Spotify-Inspired: Elevating Meilisearch with Hybrid Search and Rust</title>
+    <meta name="title" content="Spotify-Inspired: Elevating Meilisearch with Hybrid Search and Rust" />
+    <meta name="description" content=" At Meilisearch, we're blending keyword and semantic search to enhance query results. Our project, Arroy, stores embeddings on disk, optimizing search among high-dimensional vectors with Spotify's Annoy as inspiration. By porting to Rust and using LMDB, we improve efficiency and manage storage effectively. We optimize vector handling with SIMD and plan to tackle multithreaded tree building and incremental indexing in future updates. Join us on this tech journey! " />
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://blog.kerollmops.com/spotify-inspired-elevating-meilisearch-with-hybrid-search-and-rust" />
+    <meta property="og:title" content="Spotify-Inspired: Elevating Meilisearch with Hybrid Search and Rust" />
+    <meta property="og:description" content=" At Meilisearch, we're blending keyword and semantic search to enhance query results. Our project, Arroy, stores embeddings on disk, optimizing search among high-dimensional vectors with Spotify's Annoy as inspiration. By porting to Rust and using LMDB, we improve efficiency and manage storage effectively. We optimize vector handling with SIMD and plan to tackle multithreaded tree building and incremental indexing in future updates. Join us on this tech journey! " />
+    <meta property="og:image" content="https://blog.kerollmops.com/preview/spotify-inspired-elevating-meilisearch-with-hybrid-search-and-rust.png" />
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="Spotify-Inspired: Elevating Meilisearch with Hybrid Search and Rust" />
+    <meta property="twitter:title" content="Spotify-Inspired: Elevating Meilisearch with Hybrid Search and Rust" />
+    <meta property="twitter:description" content=" At Meilisearch, we're blending keyword and semantic search to enhance query results. Our project, Arroy, stores embeddings on disk, optimizing search among high-dimensional vectors with Spotify's Annoy as inspiration. By porting to Rust and using LMDB, we improve efficiency and manage storage effectively. We optimize vector handling with SIMD and plan to tackle multithreaded tree building and incremental indexing in future updates. Join us on this tech journey! " />
+    <meta property="twitter:image" content="https://blog.kerollmops.com/preview/spotify-inspired-elevating-meilisearch-with-hybrid-search-and-rust.png" />
+
+    
+  <meta name="description" content="Article by Clément Renault titled: Spotify-Inspired: Elevating Meilisearch with Hybrid Search and Rust.">
+  <link rel="stylesheet" href="/assets/starry-night.css">
+  <style></style>
+
+  </head>
+  <body>
+    <canvas id="ballsCanvas"></canvas>
+    <div class="container">
+      
+<header class="profil">
+  <a href="/">
+      <div class="text-center">
+          <img src="https://avatars.githubusercontent.com/u/3610253?v=4&s=100" class="profil-picture" alt="Profil picture of Clément Renault">
+          <p class="long-text text-uppercase">Clément Renault</p>
+      </div>
+  </a>
+</header>
+
+
+      
+    <p class="text-center">
+        <small class="text-body-secondary"><i>December 08, 2023</i> — <a href="https://github.com/Kerollmops/blog/issues/3#comment-composer-heading">0 comments</a></small>
+    </p>
+    <article>
+        <h1 class="mb-4 text-center">Spotify-Inspired: Elevating Meilisearch with Hybrid Search and Rust</h1>
+
+        <html><head></head><body><div class="markdown-alert markdown-alert-note" dir="auto"><p class="markdown-alert-title" dir="auto"><svg aria-hidden="true" class="octicon octicon-info mr-2" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p><p dir="auto">This is one blog post in a series:</p>
+<ul dir="auto">
+<li>Spotify-Inspired: Elevating Meilisearch with Hybrid Search and Rust,</li>
+<li><a href="https://blog.kerollmops.com/multithreading-and-memory-mapping-refining-ann-performance-with-arroy-in-rust" rel="nofollow">Multithreading and Memory-Mapping: Refining ANN Performance with Arroy</a>,</li>
+<li><a href="https://blog.kerollmops.com/meilisearch-expands-search-power-with-arroy-s-filtered-disk-ann" rel="nofollow">Meilisearch Expands Search Power with Arroy's Filtered Disk ANN</a>,</li>
+<li><a href="https://blog.kerollmops.com/how-meilisearch-updates-a-millions-vector-embeddings-database-in-under-a-minute" rel="nofollow">How Meilisearch Updates a Millions Vector Embeddings Database in Under a Minute</a>,</li>
+<li><a href="https://blog.kerollmops.com/meilisearch-indexes-embeddings-7x-faster-with-binary-quantization" rel="nofollow">Meilisearch Indexes Embeddings 7x Faster with Binary Quantization</a>.</li>
+</ul>
+</div>
+<h3 id="uniting-keyword-and-semantic-search" dir="auto"><a href="#uniting-keyword-and-semantic-search">Uniting Keyword and Semantic Search</a></h3>
+<p dir="auto">At Meilisearch <a data-hovercard-type="issue" data-hovercard-url="/meilisearch/meilisearch/issues/3838/hovercard" href="https://github.com/meilisearch/meilisearch/issues/3838">we are working hard on hybrid search</a>, mixing the widespread keyword search algorithm with the not-so-common semantic search. The former is very good at exact matching, while the latter finds stuff you can <em>describe</em> better.</p>
+<p dir="auto">I will explain why we even talk about <a href="https://github.com/meilisearch/arroy">Meilisearch/arroy</a> and why it is important to us. The semantic search was something new to us. The principle is quite simple: documents are associated with vectors (lists of floats), and the closer they are to each other, the closer they are semantically. When a user queries the engine, you compute the embeddings (vectors) of the query and do an approximate nearest neighbor search to get the nth closest items to the user query. Fun fact: after all this time, Annoy <a href="https://ann-benchmarks.com/gist-960-euclidean_10_euclidean.html" rel="nofollow">is still among the top competitors</a>, so imagine when we will finally release Arroy.</p>
+<p dir="auto">Seems simple, right? Do you <strong>really</strong> think this series of blog posts will talk about a dead simple subject? Join us on a journey as <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/irevoire/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/irevoire">@irevoire</a> and I (<a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/Kerollmops/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/Kerollmops">@Kerollmops</a>), with the assistance of <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/dureuill/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/dureuill">@dureuill</a>, work on porting this cutting-edge library to Rust.</p>
+<h3 id="optimizing-storage-and-search-for-high-dimension-embeddings" dir="auto"><a href="#optimizing-storage-and-search-for-high-dimension-embeddings">Optimizing Storage and Search for High-Dimension Embeddings</a></h3>
+<p dir="auto">The embeddings are something between 768 and 1536 dimensions. We have customers at Meilisearch who want to store over 100M of them. Embeddings that were not modified by any dimension reduction algorithm use 32-bit floats. This means storing this data will take between 286 GiB and 572 GiB, depending on the dimensions.</p>
+<p dir="auto"><a href="https://yourdatafitsinram.net" rel="nofollow">Yes, it fits in RAM</a>, but at what cost? Storing on disk is much cheaper. Ho! And it is only the raw vectors. I assure you that doing an approximate neighbors search among all vectors in <code class="notranslate">O(n)</code> will be quite slow. So we decided to store them on disk. We have looked at many different solutions before choosing Spotify/Annoy. Initially, we used the HNSW from instant-distance Rust crate, another data structure, to do an ANNs (approximate nearest neighbors) search. However, it is not disk-based; everything lives in memory, which is unpractical.</p>
+<h3 id="spotify-s-hyperplane-trees-for-efficient-anns" dir="auto"><a href="#spotify-s-hyperplane-trees-for-efficient-anns">Spotify's Hyperplane Trees for Efficient ANNs</a></h3>
+<p dir="auto">Spotify worked on a cool C++ library to search in enormous vector sets. The algorithm generates multiple trees that refer to the vectors. The tree nodes are random hyperplanes that split subsets of vectors in half. The root node splits the whole set of vectors in half, and the left and right branches split the subsets of vectors recursively again until the subset is small enough. When we perform an ANNs search, we go through all the root trees and decide whether to go on the hyperplanes' left or right, depending on the haystack provided. The advantage is that every node and vector is directly stored in a memory-mapped file.</p>
+<p dir="auto"><a href="assets/images/79e03646c198fa25.png" rel="noopener noreferrer" target="_blank"><img alt="split plane combined schema" src="assets/images/79e03646c198fa25.png" style="max-width: 100%;"></a></p>
+<p dir="auto">At the end of the tree, we can see the descendants' nodes. Those define the final list of leaf vectors that fit on this side of the recursive split nodes above. It is a list of unsigned integers the user provides. Annoy represents them as slices of <code class="notranslate">u32</code>s, but we decided to go <a href="https://roaringbitmap.org/about/" rel="nofollow">with RoaringBitmaps</a> to reduce their size. Annoy cannot compress them because they have a fun constraint: All nodes, user leaf vectors, split nodes, and descendants must be the same size to be accessible using offsets on disk.</p>
+<p dir="auto">The above image shows the way a split plane can be represented. A hyperplane splits a subset of nodes here in two dimensions, but imagine that with 768 to 1536 dimensions. Each hyperplane creates two subsets of points recursively split by another hyperplane. Once the number of points to split is small enough, we create a descendants node containing the item IDs corresponding to these points. Furthermore, the embeddings of the points are never duplicated in memory; we refer to them by their IDs.</p>
+<h3 id="adapting-annoy-to-lmdb" dir="auto"><a href="#adapting-annoy-to-lmdb">Adapting Annoy to LMDB</a></h3>
+<p dir="auto">So, if it works so well, why must we port it to Rust? One, because I follow the <em>Rewrite it in Rust</em> dogma 😛, two because this is a C++ library with a lot of horrifying hacks and undefined behaviors, and three because Meilisearch is based on LMDB, an atomic, transaction-based, memory-mapped key-value store. Moreover, <a data-hovercard-type="issue" data-hovercard-url="/spotify/annoy/issues/96/hovercard" href="https://github.com/spotify/annoy/issues/96">since 2015, they have wanted to use LMDB</a>, but they have yet to achieve it; it requires a lot of time to change the data structures accordingly.</p>
+<p dir="auto">LMDB uses a BTree to order the entries, and it takes more space for the intermediate data structures than annoy, which directly identifies vectors using the offset in the file. Another advantage of using this key-value store is managing incremental updates. It is easier to insert and remove vectors. Suppose you insert a vector identified by a high 32-bit integer in Annoy. In that case, it will allocate a lot of memory to store it as the dedicated offset, increasing the file size if necessary.</p>
+<p dir="auto">In Meilisearch and Arroy, <a href="https://github.com/meilisearch/heed">we use heed, a typed LMDB Rust wrapper</a>, to avoid undefined behavior, bugs, and stuff related to C/C++ libraries. We, therefore, use <code class="notranslate">&amp;mut</code> and <code class="notranslate">&amp;</code> extensively to be sure that we are not modifying the key-value store entries while keeping references inside it, and we make sure that the read-write transactions can't be referenced or sent between threads. But that will be for another story.</p>
+<p dir="auto">We first thought using this key-value store would make Arroy slower than Annoy. However, LMDB writes its pages in memory before writing them to disk, which seems much faster than directly writing into mutable memory-mapped areas. On the other hand, LMDB doesn't guarantee the memory alignment of the values that Annoy's file format permits; we'll talk about that later.</p>
+<h3 id="optimizing-vector-handling-with-simd" dir="auto"><a href="#optimizing-vector-handling-with-simd">Optimizing Vector Handling with SIMD</a></h3>
+<p dir="auto">The most CPU-intensive task that Arroy was supposed to do was to try to split clouds of vectors in half. This requires computing a massive number of distances in hot loops. But we read the embeddings from a memory-mapped disk. What could go wrong?</p>
+<div class="highlight highlight-source-rust notranslate position-relative overflow-auto" data-snippet-clipboard-copy-content="fn align_floats(unaligned_bytes: &amp;[u8]) -> Vec<f32> {
+    let count = unaligned_bytes.len() / mem::size_of::<f32>();
+    let mut floats = vec![f32::NAN; count];
+    cast_slice_mut(&amp;mut floats).copy_from_slice(unaligned_bytes);
+    floats
+}" dir="auto"><pre class="notranslate"><span class="pl-k">fn</span> <span class="pl-en">align_floats</span><span class="pl-kos">(</span><span class="pl-s1">unaligned_bytes</span><span class="pl-kos">:</span> <span class="pl-c1">&amp;</span><span class="pl-kos">[</span><span class="pl-smi">u8</span><span class="pl-kos">]</span><span class="pl-kos">)</span> -&gt; <span class="pl-smi">Vec</span><span class="pl-kos">&lt;</span><span class="pl-smi">f32</span><span class="pl-kos">&gt;</span> <span class="pl-kos">{</span>
+    <span class="pl-k">let</span> count = unaligned_bytes<span class="pl-kos">.</span><span class="pl-en">len</span><span class="pl-kos">(</span><span class="pl-kos">)</span> / mem<span class="pl-kos">::</span><span class="pl-en">size_of</span><span class="pl-kos">::</span><span class="pl-kos">&lt;</span><span class="pl-smi">f32</span><span class="pl-kos">&gt;</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-k">let</span> <span class="pl-k">mut</span> floats = <span class="pl-en">vec</span><span class="pl-en">!</span><span class="pl-kos">[</span><span class="pl-smi">f32</span><span class="pl-kos">::</span><span class="pl-v">NAN</span><span class="pl-kos">;</span> count<span class="pl-kos">]</span><span class="pl-kos">;</span>
+    <span class="pl-en">cast_slice_mut</span><span class="pl-kos">(</span><span class="pl-c1">&amp;</span><span class="pl-k">mut</span> floats<span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-en">copy_from_slice</span><span class="pl-kos">(</span>unaligned_bytes<span class="pl-kos">)</span><span class="pl-kos">;</span>
+    floats
+<span class="pl-kos">}</span></pre></div>
+<p dir="auto">We used Instrument on macOS to profile our program and discovered a lot of time was spent moving stuff around, i.e., <code class="notranslate">_platform_memmove</code>. The reason is that reading unaligned floats from disk is undefined behavior, so we were copying our floats into an aligned memory area as shown above. Cost: An allocation by reading plus a calling <code class="notranslate">memmove</code>.</p>
+<p dir="auto"><a href="assets/images/cdf86c2635a9e968.png" rel="noopener noreferrer" target="_blank"><img alt="A big memmove" src="assets/images/cdf86c2635a9e968.png" style="max-width: 100%;"></a></p>
+<p dir="auto">While porting the distance function from C++ to Rust, we used the Qdrant SIMD-optimized distance functions without modifying them beforehand. Although, <a href="https://dwrensha.github.io/capnproto-rust/2020/01/11/unaligned-memory-access" rel="nofollow">being aware of the performance cost of reading unaligned memory</a>, we decided to execute the distance functions on unaligned floats, making sure not to represent it as a <code class="notranslate">&amp;[f32]</code> as it would be undefined behavior. The functions take raw slices of bytes and deal with them using pointers and SIMD functions. We unlocked performances. The distances functions were slower, but it compensated the <code class="notranslate">memmove</code>s and allocations!</p>
+<p dir="auto"><a href="assets/images/165692227059f1af.png" rel="noopener noreferrer" target="_blank"><img alt="No more memmove" src="assets/images/165692227059f1af.png" style="max-width: 100%;"></a></p>
+<p dir="auto">Similarly to the <code class="notranslate">memmove</code> calls, we can see that the <code class="notranslate">_platform_memcmp</code> function is taking a lot of space here. The reason is that LMDB uses this standard function to compare key bytes and decide whether a key is lexicographically located above or below another key in the tree. It is used whenever we read or write in LMDB. <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/irevoire/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/irevoire">@irevoire</a> drastically reduced the size of the keys and saw an important gain in performance. We further tried using the <code class="notranslate">MDB_INTEGERKEY</code>, which makes LMDB compare memory using the computer endianness, but it was complex to use and not showing significant performance gains.</p>
+<h3 id="upcoming-challenges" dir="auto"><a href="#upcoming-challenges">Upcoming Challenges</a></h3>
+<p dir="auto">While porting this cool algorithm to Rust and LMDB, we were missing one of the most important features: Multithreading the tree building. The main reason for this missing feature is LMDB, which does not support concurrent writes to disk. It is part of the beauty of this library; writing is deterministic. We already know LMDB very well, and we will explain how we leveraged the power of LMDB <a href="https://blog.kerollmops.com/multithreading-and-memory-mapping-refining-ann-performance-with-arroy" rel="nofollow">in part 2 of this series</a> and how we beat the Spotify library.</p>
+<p dir="auto">In addition to equalizing the current Annoy features, we needed more for Meilisearch. We implemented <a href="https://harsha-simhadri.org/pubs/Filtered-DiskANN23.pdf" rel="nofollow">Microsoft's Filtered-DiskANN feature</a> in Arroy. By providing the subset of item IDs we want to retrieve, we avoid searching the whole trees to fetch the approximate nearest neighbors. We will talk about this in a soon-to-be-released article.</p>
+<p dir="auto">In Meilisearch v1.6, we've optimized performance for updating only document parts, as with vote counts or view numbers. The described single-threaded version of Arroy constructs tree nodes anew for each vector adjustment. <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/irevoire/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/irevoire">@irevoire</a> will explore Arroy's incremental indexing in his next article, a capability not offered by Annoy.</p>
+<p dir="auto">You can comment about this article on <a href="https://lobste.rs/s/4pw9kf/spotify_inspired_elevating_meilisearch" rel="nofollow">Lobste.rs</a>, <a href="https://news.ycombinator.com/" rel="nofollow">Hacker News</a>, <a href="https://old.reddit.com/r/rust/comments/18dq493/spotifyinspired_elevating_meilisearch_with_hybrid" rel="nofollow">the Rust Subreddit</a>, or <a href="https://twitter.com/Kerollmops/status/1733158652444369286" rel="nofollow">X (formerly Twitter)</a>.</p></body></html>
+    </article>
+
+    <div class="vote-emojis">
+    <a class="btn btn-outline-secondary vote-emoji" href="https://github.com/Kerollmops/blog/issues/3#comment-composer-heading" role="button">🙂 ✚</a>
+
+    
+    <a class="btn btn-outline-secondary vote-emoji" href="https://github.com/Kerollmops/blog/issues/3#comment-composer-heading" role="button">👍 2</a>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+        <a class="btn btn-outline-secondary vote-emoji" href="https://github.com/Kerollmops/blog/issues/3#comment-composer-heading" role="button">🚀 2</a>
+    
+
+    
+    </div>
+
+    <div class="tiny-utterances"
+        data-repo-owner="Kerollmops"
+        data-repo-name="blog"
+        data-issue-number="3"
+        data-max-comments="10">
+        <a class="tu-button"
+            href="https://github.com/Kerollmops/blog/issues/3#comment-composer-heading">
+            0 comments, join the discussion
+        </a>
+    </div>
+
+
+      
+  <footer class="profil text-center">
+    <p class="long-text text-uppercase">About Clément Renault</p>
+    <p class="text-center">I am the co-founder and CTO of <a href="https://github.com/meilisearch">@meilisearch</a>. I learned coding at the Paris <a href="https://github.com/42school">@42school</a>. I live in Paris and love video games.</p>
+    <hr class="mb-3"/>
+    <p class="text-center">Subscribe to <a href="/atom.xml">my RSS/Atom feed</a> for the latest updates and articles.</p>
+  </footer>
+
+    </div>
+  </body>
+</html>

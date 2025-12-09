@@ -1,0 +1,82 @@
+.tiny-utterances {
+    display: flex;
+    flex-direction: column;
+    font-family: -apple-system, BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, helvetica, Cantarell, Ubuntu, roboto, noto, arial, sans-serif;
+    font-size: 14px;
+    gap: 1rem;
+    margin-bottom: 4rem;
+}
+
+.tu-comment {
+    border-radius: 0.25rem;
+    border: 1px solid var(--bs-border-color);
+    padding: 12px;
+    word-wrap: break-word;
+}
+
+.tu-comment > *:last-child {
+    margin-bottom: 0;
+}
+
+.tu-comment .tu-created-at {
+    color: var(--bs-secondary);
+}
+
+.tu-comment .tu-created-at a {
+    color: var(--bs-secondary);
+}
+
+.tu-comment .tu-created-at a:hover {
+    color: var(--bs-secondary);
+}
+
+.tu-comment blockquote {
+    border-left: 0.25rem solid var(--bs-secondary);
+    margin: 0 0 1rem;
+    padding: 0 1rem;
+    color: var(--bs-secondary);
+}
+
+.tu-comment blockquote p {
+    margin: 0;
+    padding: 0;
+}
+
+.tu-header {
+    align-items: center;
+    display: flex;
+    flex-direction: row;
+    gap: 0.3rem;
+    margin-bottom: 1rem;
+}
+
+.tu-header a {
+    text-decoration: none;
+}
+
+.tu-header a:hover {
+    text-decoration: underline;
+}
+
+.tu-avatar {
+    border: 1px solid gray;
+    border-radius: 50%;
+    width: 2rem;
+}
+
+a.tu-button {
+    background-color: #2da44e;
+    border-radius: 0.25rem;
+    color: white;
+    display: inline-block;
+    font-weight: 600;
+    padding: 0.5rem;
+    text-decoration: none;
+    transition: 80ms;
+    transition-property: background-color;
+    width: fit-content;
+}
+
+a.tu-button:hover {
+    background-color: #2c974b;
+}

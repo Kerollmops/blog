@@ -1,0 +1,203 @@
+.container {
+    max-width: 720px;
+}
+
+h1 {
+    font-weight: 700;
+}
+
+.h1,
+.h2,
+.h3,
+.h4,
+.h5,
+.h6,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    margin-top: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+article img {
+    margin-bottom: 1rem;
+}
+
+.markdown-alert.markdown-alert-note {
+    border-left: var(--bs-link-color) 0.5rem solid;
+    padding: 0.5rem 1rem;
+    margin-bottom: 2rem;
+}
+
+.markdown-alert.markdown-alert-tip {
+    border-left: var(--bs-form-valid-border-color) 0.5rem solid;
+    padding: 0.5rem 1rem;
+    margin-bottom: 2rem;
+}
+
+.markdown-alert.markdown-alert-warning {
+    border-left: #b35b00 0.5rem solid;
+    padding: 0.5rem 1rem;
+    margin-bottom: 2rem;
+}
+
+.markdown-alert-title > .octicon {
+    margin-right: 5px;
+    margin-top: -3px;
+    fill: var(--bs-body-color);
+}
+
+.highlight {
+    margin-left: -12px;
+    margin-right: -12px;
+    padding-left: 12px;
+    padding-right: 12px;
+    background-color: var(--bs-light-bg-subtle);
+    padding-top: 1rem;
+    margin-bottom: 1rem;
+    border-top: 0.03rem solid var(--bs-dark-border-subtle);
+    border-bottom: 0.03rem solid var(--bs-dark-border-subtle);
+}
+
+header.profil {
+    margin-top: 3rem;
+    margin-bottom: 2.5rem;
+}
+
+header.profil a {
+    text-decoration: none;
+}
+
+.profil .long-text {
+    color: var(--bs-secondary-color);
+    font-weight: 300;
+    letter-spacing: 0.1rem;
+    font-size: 1rem;
+    margin-top: 0.3rem;
+}
+
+.profil-picture {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 10rem;
+}
+
+article {
+    margin-top: 4rem;
+    margin-bottom: 2rem;
+}
+
+h2:hover > a:after,
+h3:hover > a:after,
+h4:hover > a:after {
+    margin-left: 0.2em;
+    content: "#";
+}
+
+h2 > a,
+h3 > a,
+h4 > a {
+    color: var(--bs-heading-color);
+    text-decoration: none;
+}
+
+.vote-emojis {
+    margin-bottom: 1rem;
+}
+
+.vote-emojis > .btn.btn-outline-secondary.vote-emoji {
+    border-radius: 20px;
+    font-size: 0.8rem;
+    margin-right: 0.2rem;
+    padding: 0.2rem 0.5rem;
+    letter-spacing: 0.1rem;
+}
+
+.vote-emojis > .btn.btn-outline-secondary.vote-emoji:hover {
+    color: var(--bs-btn-color);
+    background-color: var(--bs-primary-bg-subtle);
+}
+
+a.user-mention {
+    text-decoration: none;
+    font-weight: 600;
+    color: rgba(var(--bs-secondary-text-emphasis), var(--bs-link-opacity, 1));
+}
+
+a.user-mention:hover {
+    text-decoration: underline;
+}
+
+footer {
+    margin-bottom: 4rem;
+}
+
+footer p,
+.profil p {
+    color: var(--bs-gray);
+    font-weight: 250;
+}
+
+a.article-link {
+    text-decoration: none;
+}
+
+a.article-link:hover .card-title {
+    text-decoration: underline;
+}
+
+ol.custom {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+ol.custom > li {
+    color: var(--bs-gray-500);
+    margin-bottom: 4rem;
+    display: inline-block;
+    transition: 0.3s;
+    padding: 5px;
+    border-radius: 3px;
+}
+
+p.card-text {
+    text-align: left;
+    color: var(--bs-gray-600);
+}
+
+.card-title {
+    color: var(--bs-body-color);
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+hr {
+    width: 20%;
+    margin: 0 auto;
+}
+
+.table {
+    display: block;
+    overflow: auto;
+    border-collapse: collapse;
+}
+
+#ballsCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+}
+
+:root {
+    --bs-font-sans-serif:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+        sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    --bs-font-monospace:
+        "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+}

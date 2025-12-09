@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="auto">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script defer data-domain="blog.kerollmops.com" src="https://plausible.io/js/script.js"></script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦀</text></svg>">
+    <script type="application/javascript" src="/assets/script.js"></script>
+    <script defer type="application/javascript" src="/assets/tiny-utterances.js"></script>
+    <script type="application/javascript" src="/assets/matter.min.js"></script>
+    <script type="application/javascript" src="/assets/balls.js"></script>
+    <link href="assets/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/style.css" rel="stylesheet">
+    <link href="assets/tiny-utterances.css" rel="stylesheet">
+
+    <!-- Primary Meta Tags -->
+    <title>Meilisearch vs Qdrant: Tradeoffs, Strengths and Weaknesses</title>
+    <meta name="title" content="Meilisearch vs Qdrant: Tradeoffs, Strengths and Weaknesses" />
+    <meta name="description" content=" This is an analysis of the weaknesses of Qdrant and its RocksDB-based HNSW compared to Meilisearch. Meilisearch shows impressive results on highly filtered datasets when Qdrant struggles with relevancy and search time. " />
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://blog.kerollmops.com/meilisearch-vs-qdrant-tradeoffs-strengths-and-weaknesses" />
+    <meta property="og:title" content="Meilisearch vs Qdrant: Tradeoffs, Strengths and Weaknesses" />
+    <meta property="og:description" content=" This is an analysis of the weaknesses of Qdrant and its RocksDB-based HNSW compared to Meilisearch. Meilisearch shows impressive results on highly filtered datasets when Qdrant struggles with relevancy and search time. " />
+    <meta property="og:image" content="https://blog.kerollmops.com/preview/meilisearch-vs-qdrant-tradeoffs-strengths-and-weaknesses.png" />
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="Meilisearch vs Qdrant: Tradeoffs, Strengths and Weaknesses" />
+    <meta property="twitter:title" content="Meilisearch vs Qdrant: Tradeoffs, Strengths and Weaknesses" />
+    <meta property="twitter:description" content=" This is an analysis of the weaknesses of Qdrant and its RocksDB-based HNSW compared to Meilisearch. Meilisearch shows impressive results on highly filtered datasets when Qdrant struggles with relevancy and search time. " />
+    <meta property="twitter:image" content="https://blog.kerollmops.com/preview/meilisearch-vs-qdrant-tradeoffs-strengths-and-weaknesses.png" />
+
+    
+  <meta name="description" content="Article by Clément Renault titled: Meilisearch vs Qdrant: Tradeoffs, Strengths and Weaknesses.">
+  <link rel="stylesheet" href="/assets/starry-night.css">
+  <style></style>
+
+  </head>
+  <body>
+    <canvas id="ballsCanvas"></canvas>
+    <div class="container">
+      
+<header class="profil">
+  <a href="/">
+      <div class="text-center">
+          <img src="https://avatars.githubusercontent.com/u/3610253?v=4&s=100" class="profil-picture" alt="Profil picture of Clément Renault">
+          <p class="long-text text-uppercase">Clément Renault</p>
+      </div>
+  </a>
+</header>
+
+
+      
+    <p class="text-center">
+        <small class="text-body-secondary"><i>January 20, 2025</i> — <a href="https://github.com/Kerollmops/blog/issues/18#comment-composer-heading">2 comments</a></small>
+    </p>
+    <article>
+        <h1 class="mb-4 text-center">Meilisearch vs Qdrant: Tradeoffs, Strengths and Weaknesses</h1>
+
+        <html><head></head><body><div class="markdown-alert markdown-alert-warning" dir="auto"><p class="markdown-alert-title" dir="auto"><svg aria-hidden="true" class="octicon octicon-alert mr-2" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Warning</p><p dir="auto">I made a mistake using Qdrant; it's not slow when set up correctly. I noted that Qdrant allows searching and filtering without proper parameters, which can lead to misuse. Slowness can arise from a misconfigured index or if filterable attributes aren't listed. You can <a data-hovercard-type="issue" data-hovercard-url="/Kerollmops/blog/issues/18/hovercard" href="https://github.com/Kerollmops/blog/issues/18#issuecomment-2603002909">find the actual results in this comment</a>. It's still interesting to notice that Meilisearch is more relevant when constrained than when searching the whole dataset.</p>
+</div>
+<p dir="auto"><a href="https://github.com/meilisearch/meilisearch">Meilisearch is a highly performant, ultra-relevant search engine</a>, and this article will help you better understand the latter adjective. The engine uses an internal library called arroy (made by Meilisearch) to organize and perform approximate nearest neighbor searches (ANNs). Meilisearch also supports a hybrid search feature, absolutely not based on fusion ranking (thank God!), which brings search results that are always relevant whether the query is keyword-based or requires semantic understanding.</p>
+<p dir="auto">To measure the performance of our random projections-based vector store, we compared it to the well-known Qdrant engine. We measured the indexing time, recall, cumulated search time, and disk usage on different datasets. You can review and run everything on <a href="https://github.com/meilisearch/vector-store-relevancy-benchmark">our benchmarks GitHub repository</a>.</p>
+<p dir="auto">Recall refers to the proportion of relevant documents retrieved from a search that are considered ideal based on the targeted query and the closest documents surrounding it. Recall@100 indicates that we have identified the top 100 documents before executing the search on Qdrant and Meilisearch, and we will count the number of documents they return from this perfect set. A higher recall score is better, with 1.00 representing a perfect recall.</p>
+  <details>
+    <summary>Show Raw Benchmark data and more details</summary>
+<p dir="auto">In this benchmark, we measure a cumulated search time by running a hundred random searches on the same dataset in different subsets of the large, one million document dataset. That's why the search time seems large—it's not a single search but a hundred. In the tables below, I divided the cumulated searches by the number of performed searches (100) to get the average search time.</p>
+<p dir="auto">The following screenshot compares an angular distance with a cosine one. Those two names refer to the same distance function. We recently changed "angular" to "cosine" on Meilisearch to align with our competitors and reduce confusion. You probably also noticed the arroy name. It's the name of <a href="https://blog.kerollmops.com/spotify-inspired-elevating-meilisearch-with-hybrid-search-and-rust" rel="nofollow">the internal vector store engine</a> we built for Meilisearch.</p>
+<p dir="auto">Finally, Qdrant exposes an "exact" parameter for the search that can return perfect results, but the downside is that it is very slow, too slow for normal end-user search usage. That's why we decided not to show it on our benchmarks. The goal of this parameter seems to be debug-oriented and not used in production.</p>
+  <a href="assets/images/2d610bb5f43f3c57.png" rel="noopener noreferrer nofollow" target="_blank"><img alt="Raw Qdrant vs Meilisearch data" data-canonical-src="https://i.imgur.com/soBcYwq.png" src="assets/images/2d610bb5f43f3c57.png" style="max-width: 100%;"></a>
+  </details>
+<h4 id="searching-in-100-of-the-dataset" dir="auto"><a href="#searching-in-100-of-the-dataset">Searching in 100% of the Dataset</a></h4>
+<p dir="auto">As we can see in the following table, Qdrant is more efficient than Meilisearch at indexing and searching <a href="https://huggingface.co/datasets/Qdrant/dbpedia-entities-openai3-text-embedding-3-large-1536-1M" rel="nofollow">the one million OpenAI (1536 dims) embeddings</a>. However, enabling the binary quantization on both contenders shows a highly reduced disk usage on the Meilisearch side but also has the downside of highly reducing the relevancy.</p>
+<markdown-accessiblity-table><table class="table table-striped" role="table">
+<thead>
+<tr>
+<th>Version</th>
+<th>Recall <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/1/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/1">@1</a></th>
+<th>Recall <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/20/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/20">@20</a></th>
+<th>Recall <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/100/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/100">@100</a></th>
+<th>Indexing time</th>
+<th>Average Search time</th>
+<th>On disk size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Meilisearch</td>
+<td><strong>1.00</strong></td>
+<td>0.85</td>
+<td>0.89</td>
+<td>1205s</td>
+<td>84ms</td>
+<td>13 GiB</td>
+</tr>
+<tr>
+<td>Meilisearch Binary Quantized</td>
+<td><strong>1.00</strong></td>
+<td>0.63</td>
+<td>0.66</td>
+<td>237s</td>
+<td>40ms</td>
+<td><strong>2 GiB</strong></td>
+</tr>
+<tr>
+<td>Qdrant</td>
+<td><strong>1.00</strong></td>
+<td><strong>0.97</strong></td>
+<td><strong>0.96</strong></td>
+<td>104s</td>
+<td>16ms</td>
+<td>9 GiB</td>
+</tr>
+<tr>
+<td>Qdrant Binary Quantized</td>
+<td><strong>1.00</strong></td>
+<td>0.97</td>
+<td>0.96</td>
+<td><strong>99s</strong></td>
+<td><strong>13ms</strong></td>
+<td>8 GiB</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h4 id="searching-in-12-of-the-dataset" dir="auto"><a href="#searching-in-12-of-the-dataset">Searching in 12% of the Dataset</a></h4>
+<p dir="auto">This part of the benchmarks is where the results become interesting. We decided to filter the one million vectors we were searching on to only search in a subset of 12%, equivalent to searching 120,000 documents. We can see that Meilisearch is more relevant and faster than its competitor. Even when comparing the binary quantized versions, Qdrant shows weaknesses in this use case.</p>
+<p dir="auto">Qdrant still uses more than half of the disk space Meilisearch uses. However, searching this document subset becomes 3x to 6x slower than Meilisearch. Interestingly, the more you constrain Meilisearch, the better it gets in relevancy and search time.</p>
+<markdown-accessiblity-table><table class="table table-striped" role="table">
+<thead>
+<tr>
+<th>Version</th>
+<th>Recall <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/1/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/1">@1</a></th>
+<th>Recall <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/20/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/20">@20</a></th>
+<th>Recall <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/100/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/100">@100</a></th>
+<th>Indexing time</th>
+<th>Average Search time</th>
+<th>On disk size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Meilisearch</td>
+<td><strong>0.77</strong></td>
+<td><strong>0.93</strong></td>
+<td><strong>0.95</strong></td>
+<td>1206s</td>
+<td>60ms</td>
+<td>13 GiB</td>
+</tr>
+<tr>
+<td>Meilisearch Binary Quantized</td>
+<td>0.57</td>
+<td>0.67</td>
+<td>0.68</td>
+<td>237s</td>
+<td><strong>30ms</strong></td>
+<td><strong>2 GiB</strong></td>
+</tr>
+<tr>
+<td>Qdrant</td>
+<td>0.55</td>
+<td>0.54</td>
+<td>0.50</td>
+<td>101s</td>
+<td>190ms</td>
+<td>8 GiB</td>
+</tr>
+<tr>
+<td>Qdrant Binary Quantized</td>
+<td>0.58</td>
+<td>0.56</td>
+<td>0.51</td>
+<td><strong>99s</strong></td>
+<td>190ms</td>
+<td>8 GiB</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h4 id="searching-in-6-of-the-dataset" dir="auto"><a href="#searching-in-6-of-the-dataset">Searching in 6% of the Dataset</a></h4>
+<p dir="auto">We tried to reduce the subset further to see if Qdrant uses a different algorithm when the subset of documents is even smaller. We benchmarked by searching in a 60,000 vector subset this time.</p>
+<p dir="auto">As you may see, Qdrant relevancy is even worth than when searching in 12% of the dataset. This time, even the binary quantized version of Meilisearch is between 6 and 36 points more relevant than the non-quantized Qdrant version. It indeed seems that the engine doesn't switch algorithms when the subset becomes very small. On the other hand, Meilisearch became even more relevant. As spotted before, the engine is more relevant and up to 17x faster when the use case is to search in a very constrained subset of documents.</p>
+<markdown-accessiblity-table><table class="table table-striped" role="table">
+<thead>
+<tr>
+<th>Version</th>
+<th>Recall <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/1/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/1">@1</a></th>
+<th>Recall <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/20/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/20">@20</a></th>
+<th>Recall <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/100/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/100">@100</a></th>
+<th>Indexing time</th>
+<th>Average Search time</th>
+<th>On disk size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Meilisearch</td>
+<td><strong>0.82</strong></td>
+<td><strong>0.94</strong></td>
+<td><strong>0.97</strong></td>
+<td>1206s</td>
+<td>60ms</td>
+<td>13 GiB</td>
+</tr>
+<tr>
+<td>Meilisearch Binary Quantized</td>
+<td>0.49</td>
+<td>0.68</td>
+<td>0.67</td>
+<td>238s</td>
+<td><strong>30ms</strong></td>
+<td><strong>2 GiB</strong></td>
+</tr>
+<tr>
+<td>Qdrant</td>
+<td>0.29</td>
+<td>0.20</td>
+<td>0.17</td>
+<td><strong>101s</strong></td>
+<td>450ms</td>
+<td>8 GiB</td>
+</tr>
+<tr>
+<td>Qdrant Binary Quantized</td>
+<td>0.27</td>
+<td>0.30</td>
+<td>0.27</td>
+<td>102s</td>
+<td>510ms</td>
+<td>8 GiB</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h4 id="searching-in-1-of-the-dataset" dir="auto"><a href="#searching-in-1-of-the-dataset">Searching in 1% of the Dataset</a></h4>
+<p dir="auto">For the sport, we further reduced the subset to see how well Meilisearch was performing, and we indeed noticed nearly perfect relevancy results when using the non-quantized version. However, Qdrant struggles to reach 22% recall in about 10x longer than Meilisearch.</p>
+<p dir="auto">As you can see, the Meilisearch binary quantized version is good enough and clearly better than any Qdrant version. So, if you have disk size constraints and want to reduce the indexing time by six while still being more than three times more relevant than Qdrant, you can still use this solution.</p>
+<markdown-accessiblity-table><table class="table table-striped" role="table">
+<thead>
+<tr>
+<th>Version</th>
+<th>Recall <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/1/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/1">@1</a></th>
+<th>Recall <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/20/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/20">@20</a></th>
+<th>Recall <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/100/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/100">@100</a></th>
+<th>Indexing time</th>
+<th>Average Search time</th>
+<th>On disk size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Meilisearch</td>
+<td><strong>0.85</strong></td>
+<td><strong>0.98</strong></td>
+<td><strong>0.99</strong></td>
+<td>1208s</td>
+<td>100ms</td>
+<td>13 GiB</td>
+</tr>
+<tr>
+<td>Meilisearch Binary Quantized</td>
+<td>0.64</td>
+<td>0.68</td>
+<td>0.68</td>
+<td>237s</td>
+<td><strong>60ms</strong></td>
+<td><strong>2 GiB</strong></td>
+</tr>
+<tr>
+<td>Qdrant</td>
+<td>0.20</td>
+<td>0.22</td>
+<td>0.20</td>
+<td><strong>100s</strong></td>
+<td>670ms</td>
+<td>8 GiB</td>
+</tr>
+<tr>
+<td>Qdrant Binary Quantized</td>
+<td>0.14</td>
+<td>0.10</td>
+<td>0.09</td>
+<td>102s</td>
+<td>900ms</td>
+<td>8 GiB</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h3 id="what-we-learned" dir="auto"><a href="#what-we-learned">What we Learned?</a></h3>
+<p dir="auto">Meilisearch doesn't use an HNSW or a DiskANN for its performant vector store. Instead, it uses a random projections approach to split the dataset into multiple random trees and store everything in LMDB. After our filtering system extracted the subset of documents to search for, we dive through the tree nodes and <a href="https://blog.kerollmops.com/meilisearch-expands-search-power-with-arroy-s-filtered-disk-ann" rel="nofollow">filter the documents along the way</a>. Computing so many nodes takes a long time to index but unlocks a snappy search service with high relevancy and recall. Everything is a matter of tradeoffs in computer science.</p>
+<p dir="auto">Still, as it is too slow, we plan to investigate and improve the indexing time. We will perform tweaking, like reducing the number of trees and tree nodes, and review how it affects relevancy, obviously.</p>
+<p dir="auto">On the other hand, Qdrant uses a RocksDB-backed HNSW with <a href="https://qdrant.tech/articles/filtrable-hnsw" rel="nofollow">an in-house filtering system</a>. It takes 10x less time to index the documents but still uses considerable space. Unfortunately, this algorithm is inefficient when the amount of data is large enough and the subset is small. We also benched with 100k documents, and Qdrant performed well. But at Meilisearch, it is more common to see customers with more than a million documents than the contrary.</p>
+<h3 id="what-are-the-use-cases" dir="auto"><a href="#what-are-the-use-cases">What are the Use Cases?</a></h3>
+<p dir="auto">Meilisearch is ideal for multi-tenancy systems where multiple users' data is merged into a single index. For instance, in a Bluesky-like app, all posts can be stored together, allowing users to search for relevant content from the last month or specific hashtags.</p>
+<p dir="auto">Similarly, in an eCommerce or marketplace platform, products are stored in one index with details like price, category, description, and shipping region. Users typically filter by price or category first and then perform a semantic search, significantly reducing the data set for approximate nearest neighbors (ANNs) on which Meilisearch performs better.</p>
+<p dir="auto">Furthermore, Meilisearch is designed for direct use by end-users from the front end of any application or eCommerce website. The search must be as snappy and quick as possible, without latency. However, when doing a semantic search, the embedding must be generated by a third-party API, e.g., OpenAI or Anthropic, which already brings a lot of latency. As you have seen, Meilisearch pulls down the latency as much as possible when Qdrant shows latency, just for the local ANN search, which is as high as a second.</p>
+<p dir="auto">Now that you understand Meilisearch's capabilities and the internal vector store, Arroy, I hope you will create something amazing with this wonderful open-source software. 🚀</p></body></html>
+    </article>
+
+    <div class="vote-emojis">
+    <a class="btn btn-outline-secondary vote-emoji" href="https://github.com/Kerollmops/blog/issues/18#comment-composer-heading" role="button">🙂 ✚</a>
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    </div>
+
+    <div class="tiny-utterances"
+        data-repo-owner="Kerollmops"
+        data-repo-name="blog"
+        data-issue-number="18"
+        data-max-comments="10">
+        <a class="tu-button"
+            href="https://github.com/Kerollmops/blog/issues/18#comment-composer-heading">
+            2 comments, join the discussion
+        </a>
+    </div>
+
+
+      
+  <footer class="profil text-center">
+    <p class="long-text text-uppercase">About Clément Renault</p>
+    <p class="text-center">I am the co-founder and CTO of <a href="https://github.com/meilisearch">@meilisearch</a>. I learned coding at the Paris <a href="https://github.com/42school">@42school</a>. I live in Paris and love video games.</p>
+    <hr class="mb-3"/>
+    <p class="text-center">Subscribe to <a href="/atom.xml">my RSS/Atom feed</a> for the latest updates and articles.</p>
+  </footer>
+
+    </div>
+  </body>
+</html>

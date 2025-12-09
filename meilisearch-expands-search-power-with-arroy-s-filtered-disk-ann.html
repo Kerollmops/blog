@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="auto">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script defer data-domain="blog.kerollmops.com" src="https://plausible.io/js/script.js"></script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦀</text></svg>">
+    <script type="application/javascript" src="/assets/script.js"></script>
+    <script defer type="application/javascript" src="/assets/tiny-utterances.js"></script>
+    <script type="application/javascript" src="/assets/matter.min.js"></script>
+    <script type="application/javascript" src="/assets/balls.js"></script>
+    <link href="assets/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/style.css" rel="stylesheet">
+    <link href="assets/tiny-utterances.css" rel="stylesheet">
+
+    <!-- Primary Meta Tags -->
+    <title>Meilisearch Expands Search Power with Arroy's Filtered Disk ANN</title>
+    <meta name="title" content="Meilisearch Expands Search Power with Arroy's Filtered Disk ANN" />
+    <meta name="description" content=" Meilisearch is enhancing its search capabilities by integrating Arroy, which supports efficient vector storage and filtering. Arroy outperforms previous solutions like HNSW, especially for large datasets. With the use of RoaringBitmap for filtering, Arroy reduces memory usage and speeds up searches. New features include support for multiple indexes, enabling efficient handling of various embeddings. This teamwork-driven project highlights flexibility and scalability for diverse search needs. " />
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://blog.kerollmops.com/meilisearch-expands-search-power-with-arroy-s-filtered-disk-ann" />
+    <meta property="og:title" content="Meilisearch Expands Search Power with Arroy's Filtered Disk ANN" />
+    <meta property="og:description" content=" Meilisearch is enhancing its search capabilities by integrating Arroy, which supports efficient vector storage and filtering. Arroy outperforms previous solutions like HNSW, especially for large datasets. With the use of RoaringBitmap for filtering, Arroy reduces memory usage and speeds up searches. New features include support for multiple indexes, enabling efficient handling of various embeddings. This teamwork-driven project highlights flexibility and scalability for diverse search needs. " />
+    <meta property="og:image" content="https://blog.kerollmops.com/preview/meilisearch-expands-search-power-with-arroy-s-filtered-disk-ann.png" />
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="Meilisearch Expands Search Power with Arroy's Filtered Disk ANN" />
+    <meta property="twitter:title" content="Meilisearch Expands Search Power with Arroy's Filtered Disk ANN" />
+    <meta property="twitter:description" content=" Meilisearch is enhancing its search capabilities by integrating Arroy, which supports efficient vector storage and filtering. Arroy outperforms previous solutions like HNSW, especially for large datasets. With the use of RoaringBitmap for filtering, Arroy reduces memory usage and speeds up searches. New features include support for multiple indexes, enabling efficient handling of various embeddings. This teamwork-driven project highlights flexibility and scalability for diverse search needs. " />
+    <meta property="twitter:image" content="https://blog.kerollmops.com/preview/meilisearch-expands-search-power-with-arroy-s-filtered-disk-ann.png" />
+
+    
+  <meta name="description" content="Article by Clément Renault titled: Meilisearch Expands Search Power with Arroy's Filtered Disk ANN.">
+  <link rel="stylesheet" href="/assets/starry-night.css">
+  <style></style>
+
+  </head>
+  <body>
+    <canvas id="ballsCanvas"></canvas>
+    <div class="container">
+      
+<header class="profil">
+  <a href="/">
+      <div class="text-center">
+          <img src="https://avatars.githubusercontent.com/u/3610253?v=4&s=100" class="profil-picture" alt="Profil picture of Clément Renault">
+          <p class="long-text text-uppercase">Clément Renault</p>
+      </div>
+  </a>
+</header>
+
+
+      
+    <p class="text-center">
+        <small class="text-body-secondary"><i>December 23, 2023</i> — <a href="https://github.com/Kerollmops/blog/issues/5#comment-composer-heading">0 comments</a></small>
+    </p>
+    <article>
+        <h1 class="mb-4 text-center">Meilisearch Expands Search Power with Arroy's Filtered Disk ANN</h1>
+
+        <html><head></head><body><div class="markdown-alert markdown-alert-note" dir="auto"><p class="markdown-alert-title" dir="auto"><svg aria-hidden="true" class="octicon octicon-info mr-2" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p><p dir="auto">This is one blog post in a series:</p>
+<ul dir="auto">
+<li><a href="https://blog.kerollmops.com/spotify-inspired-elevating-meilisearch-with-hybrid-search-and-rust" rel="nofollow">Spotify-Inspired: Elevating Meilisearch with Hybrid Search and Rust</a>,</li>
+<li><a href="https://blog.kerollmops.com/multithreading-and-memory-mapping-refining-ann-performance-with-arroy-in-rust" rel="nofollow">Multithreading and Memory-Mapping: Refining ANN Performance with Arroy</a>,</li>
+<li>Meilisearch Expands Search Power with Arroy's Filtered Disk ANN,</li>
+<li><a href="https://blog.kerollmops.com/how-meilisearch-updates-a-millions-vector-embeddings-database-in-under-a-minute" rel="nofollow">How Meilisearch Updates a Millions Vector Embeddings Database in Under a Minute</a>,</li>
+<li><a href="https://blog.kerollmops.com/meilisearch-indexes-embeddings-7x-faster-with-binary-quantization" rel="nofollow">Meilisearch Indexes Embeddings 7x Faster with Binary Quantization</a>.</li>
+</ul>
+</div>
+<p dir="auto">We can store vectors in arroy and efficiently compute the search tree nodes, but we still need some features to make it usable in Meilisearch. Our full-text search engine has great support for filtering; selecting subsets of documents is an essential feature to support. For instance, one of our biggest clients requires the ability to filter through over 100 million YouTube video metadata and their associated image embeddings to effectively select videos released within specific time frames, such as a single day or week. This represents the scalability and responsiveness challenges we aim to address with our filtering system, making it a perfect use case to tailor our developments.</p>
+<p dir="auto">Meilisearch supports the following operators on the filterable attributes of your documents: <code class="notranslate">&lt;</code>, <code class="notranslate">&lt;=</code>, <code class="notranslate">=</code>, <code class="notranslate">!=</code> <code class="notranslate">&gt;=</code>, and <code class="notranslate">&gt;</code>. Internally, we extensively <a href="https://github.com/RoaringBitmap/roaring-rs">use <code class="notranslate">RoaringBitmap</code>s</a>, which are well-optimized sets of integers that support fast binary operations like unions and intersections. When the engine receives a user request with filters, it first computes the subset of documents from the filter that will be inputted into the search algorithms, the one that ranks documents by quality. This subset is represented by a <code class="notranslate">RoaringBitmap</code>.</p>
+<h3 id="how-was-it-working-before-arroy" dir="auto"><a href="#how-was-it-working-before-arroy">How was it Working Before Arroy?</a></h3>
+<p dir="auto">Ranking only the subset of filtered documents has been working well since 2018, but now that we have a new data structure to search on, we need to look at how to implement it. The engine had already supported the vector store feature for months but was inefficient. We were using an in-memory HNSW and were deserializing the whole data structure in memory, searching for the nearest neighbors of the target vector, which was returning an iterator.</p>
+<div class="highlight highlight-source-rust notranslate position-relative overflow-auto" data-snippet-clipboard-copy-content="fn vector_store(db: Database, subset: &amp;RoaringBitmap, target_vec: &amp;[f32]) -> Vec<DocumentID> {
+    // This takes a lot of time and memory.
+    let hnsw = db.deserialize_hnsw();
+
+    let mut output = Vec::new();
+    for (vec_id, vec, dist) in hnsw.nearest_neighbors(target_vec) {
+        let doc_id = db.document_associated_to_vec(vec_id).unwrap();
+        if !output.contains(&amp;doc_id) {
+          output.push(doc_id);
+          if output.len() == 20 { break }
+        }
+    }
+
+    output
+}" dir="auto"><pre class="notranslate"><span class="pl-k">fn</span> <span class="pl-en">vector_store</span><span class="pl-kos">(</span><span class="pl-s1">db</span><span class="pl-kos">:</span> <span class="pl-smi">Database</span><span class="pl-kos">,</span> <span class="pl-s1">subset</span><span class="pl-kos">:</span> <span class="pl-c1">&amp;</span><span class="pl-smi">RoaringBitmap</span><span class="pl-kos">,</span> <span class="pl-s1">target_vec</span><span class="pl-kos">:</span> <span class="pl-c1">&amp;</span><span class="pl-kos">[</span><span class="pl-smi">f32</span><span class="pl-kos">]</span><span class="pl-kos">)</span> -&gt; <span class="pl-smi">Vec</span><span class="pl-kos">&lt;</span><span class="pl-smi">DocumentID</span><span class="pl-kos">&gt;</span> <span class="pl-kos">{</span>
+    <span class="pl-c">// This takes a lot of time and memory.</span>
+    <span class="pl-k">let</span> hnsw = db<span class="pl-kos">.</span><span class="pl-en">deserialize_hnsw</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+
+    <span class="pl-k">let</span> <span class="pl-k">mut</span> output = <span class="pl-smi">Vec</span><span class="pl-kos">::</span><span class="pl-en">new</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-k">for</span> <span class="pl-kos">(</span>vec_id<span class="pl-kos">,</span> vec<span class="pl-kos">,</span> dist<span class="pl-kos">)</span> <span class="pl-k">in</span> hnsw<span class="pl-kos">.</span><span class="pl-en">nearest_neighbors</span><span class="pl-kos">(</span>target_vec<span class="pl-kos">)</span> <span class="pl-kos">{</span>
+        <span class="pl-k">let</span> doc_id = db<span class="pl-kos">.</span><span class="pl-en">document_associated_to_vec</span><span class="pl-kos">(</span>vec_id<span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-en">unwrap</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+        <span class="pl-k">if</span> !output<span class="pl-kos">.</span><span class="pl-en">contains</span><span class="pl-kos">(</span><span class="pl-c1">&amp;</span>doc_id<span class="pl-kos">)</span> <span class="pl-kos">{</span>
+          output<span class="pl-kos">.</span><span class="pl-en">push</span><span class="pl-kos">(</span>doc_id<span class="pl-kos">)</span><span class="pl-kos">;</span>
+          <span class="pl-k">if</span> output<span class="pl-kos">.</span><span class="pl-en">len</span><span class="pl-kos">(</span><span class="pl-kos">)</span> == <span class="pl-c1">20</span> <span class="pl-kos">{</span> <span class="pl-k">break</span> <span class="pl-kos">}</span>
+        <span class="pl-kos">}</span>
+    <span class="pl-kos">}</span>
+
+    output
+<span class="pl-kos">}</span></pre></div>
+<p dir="auto">You may wonder why we are retrieving the document ID associated with the vector ID. Meilisearch supports multiple vectors by document since the beginning of the vector store feature. This is unfortunate because we must look up every vector we are iterating. We need to maintain this lookup table. The iterator can iterate on the whole vector dataset if the subset is small enough, e.g., <code class="notranslate">document.user_id = 32</code>. We want the document operations to be atomic and consistent, so we have to store the HNSW on disk and avoid having to maintain synchronization between the LMDB transactions and this vector store data structure. Ho! And the library doesn't support incremental insertion. We must reconstruct the HNSW in memory from scratch every time we insert a single vector.</p>
+<h3 id="integrating-arroy-in-meilisearch" dir="auto"><a href="#integrating-arroy-in-meilisearch">Integrating Arroy in Meilisearch</a></h3>
+<p dir="auto">As we worked on updating Meilisearch to include the new vector store, arroy, we tried out mob programming for the first time. This is where we all code together at the same time. It might sound like it would slow us down, but it actually made us super productive! By tackling problems together right as they came up, we got arroy fitted into Meilisearch much faster than if we'd worked alone.</p>
+<p dir="auto">Arroy is different because it doesn’t return an iterator to give back search results. Now, our search engine is smarter and can figure out the exact number of results it needs to give back, even when there are filters to consider. This teamwork improved our search tool and showed us that working together is key when facing big tech challenges.</p>
+<h4 id="filtering-while-searching-in-arroy" dir="auto"><a href="#filtering-while-searching-in-arroy">Filtering While Searching in Arroy</a></h4>
+<p dir="auto">You can find a description of the arroy internal data structure in <a href="https://blog.kerollmops.com/spotify-inspired-elevating-meilisearch-with-hybrid-search-and-rust" rel="nofollow">part 1 of this series</a>. Here is a list of the different kinds of nodes you can find:</p>
+<ul dir="auto">
+<li>The item nodes. The original vectors that the user provides. The small points on the left.</li>
+<li>The normal nodes, also called split planes. They represent hyperplanes that split subsets of item nodes in half.</li>
+<li>The descendant nodes. They are the tree leaves composed of the item IDs you'll find if you follow a certain normal node path.</li>
+</ul>
+<p dir="auto"><a href="assets/images/c20ba406e4637e14.png" rel="noopener noreferrer" target="_blank"><img alt="split plane combined schema" src="assets/images/c20ba406e4637e14.png" style="max-width: 100%;"></a></p>
+<p dir="auto">A typical search will load all the normal nodes in a binary heap associated with an infinite distance. Remember that there are a lot of randomly generated trees, and there are, therefore, a lot of entry points. Ascending distances order the binary heap; the shortest nodes found will be popped first.</p>
+<p dir="auto">In the search algorithm, we pop the nearest item from this heap. If it's a normal node, we fetch the left and right sides of the hyperplane:</p>
+<ul dir="auto">
+<li>If we find normal nodes again, we associate the distance from the hyperplane with positive and negative distances from the targeted/queried vector.</li>
+<li>If we find descendant nodes, we do not push them into the queue but rather directly add them to the potential output list as they represent the nearest vectors we have found.</li>
+</ul>
+<p dir="auto">You probably noticed where I want to go, but this is where magic happens. We modified arroy to store the list of descendants in <code class="notranslate">RoaringBitmap</code>s instead of a raw list of integers. This is another improvement compared to the original Spotify library, as those lists weigh less. Doing an intersection with the filtered subset is way easier now.</p>
+<p dir="auto">However, there is always an issue: the vector IDs are not the document IDs, and Meilisearch, after executing the filters, only knows about the documents. Iterating on the lookup table, I talked about before, constructing the final bitmap with all the vector IDs corresponding to the filtered documents would not be efficient when many documents are part of this subset, e.g., <code class="notranslate">document.user_id != 32</code>. I do not recommend using an <code class="notranslate">O(n)</code> algorithm in the search functions.</p>
+<h4 id="using-multiple-indexes-for-efficient-filtering" dir="auto"><a href="#using-multiple-indexes-for-efficient-filtering">Using Multiple Indexes for Efficient Filtering</a></h4>
+<p dir="auto">Fortunately, we developed a fun feature that wasn't meant to be used that way in arroy: the support for multiple indexes in a single LMDB database. We originally developed the multiple indexes feature to be able only to open a single LMDB database to store different vector types. Yes! In Meilisearch v1.6, you can describe the different embedders that live in a single index. You can identify the different vectors with different numbers of dimensions and distance functions you can store in a single document. Defining multiple vectors for a single document associated with the same embedder is also possible.</p>
+<p dir="auto">The indexes are identified by an <code class="notranslate">u16</code>. This feature can trick the algorithm into being even more efficient than the previous HNSW solution. Using one store by embedder and vector in a document is interesting because we can now identify the vectors using the document ID. No more lookup database and vector IDs. The vector IDs are reduced to the document IDs. We can use the output of the filters to filter the arroy indexes.</p>
+<p dir="auto">The search algorithm is different on the Meilisearch side. We request the nearest neighbors in every arroy index, sort the results by document ID to be able to deduplicate them and not return the same document multiple times, sort them again by distance, and then return only the top twenty documents. It may seem complex, but we are talking about twenty documents by the number of vectors for a single document. Usually, users will have a single vector.</p>
+<div class="highlight highlight-source-rust notranslate position-relative overflow-auto" data-snippet-clipboard-copy-content="fn vector_search(
+    rtxn: &amp;RoTxn,
+    database: Database,
+    embedder_index: u8,
+    limit: usize,
+    candidates: &amp;RoaringBitmap,
+    target_vector: &amp;[f32],
+) -> Vec<(DocumentId, f32)> {
+    // The index represents the embedder index shifted and
+    // is later combined with the arroy index. There is an arroy
+    // index by vector for a single embedded in a document.
+    let index = (embedder_index as u16) << 8;
+    let readers: Vec<_> = (0..=u8::MAX)
+        .map(|k| index | (k as u16))
+        .map_while(|index| arroy::Reader::open(rtxn, index, database).unwrap())
+        .collect();
+
+    let mut results = Vec::new();
+    for reader in &amp;readers {
+        let nns = reader.nns_by_vector(rtxn, target_vector, limit, None, Some(candidates)).unwrap();
+        results.extend(nns_by_vector);
+    }
+
+    // Documents can have multiple vectors. We store the different vectors
+    // into different arroy indexes, we must make sure we don't find the nearest neighbors
+    // vectors that correspond to the same document.
+    results.sort_unstable_by_key(|(doc_id, _)| doc_id);
+    results.dedup_by_key(|(doc_id, _)| doc_id);
+
+    // Sort back the documents by distance
+    results.sort_unstable_by_key(|(_, distance)| distance);
+    results
+}" dir="auto"><pre class="notranslate"><span class="pl-k">fn</span> <span class="pl-en">vector_search</span><span class="pl-kos">(</span>
+    <span class="pl-s1">rtxn</span><span class="pl-kos">:</span> <span class="pl-c1">&amp;</span><span class="pl-smi">RoTxn</span><span class="pl-kos">,</span>
+    <span class="pl-s1">database</span><span class="pl-kos">:</span> <span class="pl-smi">Database</span><span class="pl-kos">,</span>
+    <span class="pl-s1">embedder_index</span><span class="pl-kos">:</span> <span class="pl-smi">u8</span><span class="pl-kos">,</span>
+    <span class="pl-s1">limit</span><span class="pl-kos">:</span> <span class="pl-smi">usize</span><span class="pl-kos">,</span>
+    <span class="pl-s1">candidates</span><span class="pl-kos">:</span> <span class="pl-c1">&amp;</span><span class="pl-smi">RoaringBitmap</span><span class="pl-kos">,</span>
+    <span class="pl-s1">target_vector</span><span class="pl-kos">:</span> <span class="pl-c1">&amp;</span><span class="pl-kos">[</span><span class="pl-smi">f32</span><span class="pl-kos">]</span><span class="pl-kos">,</span>
+<span class="pl-kos">)</span> -&gt; <span class="pl-smi">Vec</span><span class="pl-kos">&lt;</span><span class="pl-kos">(</span><span class="pl-smi">DocumentId</span><span class="pl-kos">,</span> <span class="pl-smi">f32</span><span class="pl-kos">)</span><span class="pl-kos">&gt;</span> <span class="pl-kos">{</span>
+    <span class="pl-c">// The index represents the embedder index shifted and</span>
+    <span class="pl-c">// is later combined with the arroy index. There is an arroy</span>
+    <span class="pl-c">// index by vector for a single embedded in a document.</span>
+    <span class="pl-k">let</span> index = <span class="pl-kos">(</span>embedder_index <span class="pl-k">as</span> <span class="pl-smi">u16</span><span class="pl-kos">)</span> &lt;&lt; <span class="pl-c1">8</span><span class="pl-kos">;</span>
+    <span class="pl-k">let</span> readers<span class="pl-kos">:</span> <span class="pl-smi">Vec</span><span class="pl-kos">&lt;</span><span class="pl-smi">_</span><span class="pl-kos">&gt;</span> = <span class="pl-kos">(</span><span class="pl-c1">0</span>..=u8<span class="pl-kos">::</span><span class="pl-v">MAX</span><span class="pl-kos">)</span>
+        <span class="pl-kos">.</span><span class="pl-en">map</span><span class="pl-kos">(</span>|k| index | <span class="pl-kos">(</span>k <span class="pl-k">as</span> <span class="pl-smi">u16</span><span class="pl-kos">)</span><span class="pl-kos">)</span>
+        <span class="pl-kos">.</span><span class="pl-en">map_while</span><span class="pl-kos">(</span>|index| arroy<span class="pl-kos">::</span><span class="pl-smi">Reader</span><span class="pl-kos">::</span><span class="pl-en">open</span><span class="pl-kos">(</span>rtxn<span class="pl-kos">,</span> index<span class="pl-kos">,</span> database<span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-en">unwrap</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">)</span>
+        <span class="pl-kos">.</span><span class="pl-en">collect</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+
+    <span class="pl-k">let</span> <span class="pl-k">mut</span> results = <span class="pl-smi">Vec</span><span class="pl-kos">::</span><span class="pl-en">new</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-k">for</span> reader <span class="pl-k">in</span> <span class="pl-c1">&amp;</span>readers <span class="pl-kos">{</span>
+        <span class="pl-k">let</span> nns = reader<span class="pl-kos">.</span><span class="pl-en">nns_by_vector</span><span class="pl-kos">(</span>rtxn<span class="pl-kos">,</span> target_vector<span class="pl-kos">,</span> limit<span class="pl-kos">,</span> <span class="pl-v">None</span><span class="pl-kos">,</span> <span class="pl-en">Some</span><span class="pl-kos">(</span>candidates<span class="pl-kos">)</span><span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-en">unwrap</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+        results<span class="pl-kos">.</span><span class="pl-en">extend</span><span class="pl-kos">(</span>nns_by_vector<span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-kos">}</span>
+
+    <span class="pl-c">// Documents can have multiple vectors. We store the different vectors</span>
+    <span class="pl-c">// into different arroy indexes, we must make sure we don't find the nearest neighbors</span>
+    <span class="pl-c">// vectors that correspond to the same document.</span>
+    results<span class="pl-kos">.</span><span class="pl-en">sort_unstable_by_key</span><span class="pl-kos">(</span>|<span class="pl-kos">(</span>doc_id<span class="pl-kos">,</span> _<span class="pl-kos">)</span>| doc_id<span class="pl-kos">)</span><span class="pl-kos">;</span>
+    results<span class="pl-kos">.</span><span class="pl-en">dedup_by_key</span><span class="pl-kos">(</span>|<span class="pl-kos">(</span>doc_id<span class="pl-kos">,</span> _<span class="pl-kos">)</span>| doc_id<span class="pl-kos">)</span><span class="pl-kos">;</span>
+
+    <span class="pl-c">// Sort back the documents by distance</span>
+    results<span class="pl-kos">.</span><span class="pl-en">sort_unstable_by_key</span><span class="pl-kos">(</span>|<span class="pl-kos">(</span>_<span class="pl-kos">,</span> distance<span class="pl-kos">)</span>| distance<span class="pl-kos">)</span><span class="pl-kos">;</span>
+    results
+<span class="pl-kos">}</span></pre></div>
+<h3 id="the-design-philosophy-behind-these-improvements" dir="auto"><a href="#the-design-philosophy-behind-these-improvements">The Design Philosophy Behind These Improvements</a></h3>
+<p dir="auto">We're trying to make Meilisearch flexible enough for everyone's needs. Whether your documents are powered by a single embedding, like the kind OpenAI's nifty tools generate, or mixing it up with text and image embeddings, as many e-commerce sites do, we want your search experience to be seamless. We haven't forgotten you for the power users working with multiple embeddings from multi-modal embedders. Our latest improvements ensure that everyone gets to update and fine-tune their search indexes incrementally, making the whole process as smooth as butter.</p>
+<p dir="auto">Big thanks to everyone: Wrapping this up, a huge shout-out to the squad – <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/dureuill/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/dureuill">@dureuill</a>, <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/irevoire/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/irevoire">@irevoire</a>, and <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/ManyTheFish/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/ManyTheFish">@ManyTheFish</a> – for their genius and grunt work that brought our ideas to life. And watch out for <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/irevoire/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/irevoire">@irevoire</a>'s upcoming article, where he'll explain how we've implemented incremental indexing in Arroy—meaning you can add new vectors without rebuilding everything from scratch. More on that soon!</p>
+<p dir="auto">You can comment about this article on <a href="https://lobste.rs/s/hdokyh/meilisearch_expands_search_power_with" rel="nofollow">Lobste.rs</a>, <a href="https://news.ycombinator.com/" rel="nofollow">Hacker News</a>, <a href="https://www.reddit.com/r/rust/comments/18pqxdz/meilisearch_expands_search_power_with_arroys" rel="nofollow">the Rust Subreddit</a>, or <a href="https://x.com/kerollmops/status/1738837058628551148?s=46&amp;t=0s6OFYJM-Oyl_WD-1jijQA" rel="nofollow">X (formerly Twitter)</a>.</p></body></html>
+    </article>
+
+    <div class="vote-emojis">
+    <a class="btn btn-outline-secondary vote-emoji" href="https://github.com/Kerollmops/blog/issues/5#comment-composer-heading" role="button">🙂 ✚</a>
+
+    
+
+    
+
+    
+
+    
+        <a class="btn btn-outline-secondary vote-emoji" href="https://github.com/Kerollmops/blog/issues/5#comment-composer-heading" role="button">❤️ 9</a>
+    
+
+    
+
+    
+
+    
+
+    
+    </div>
+
+    <div class="tiny-utterances"
+        data-repo-owner="Kerollmops"
+        data-repo-name="blog"
+        data-issue-number="5"
+        data-max-comments="10">
+        <a class="tu-button"
+            href="https://github.com/Kerollmops/blog/issues/5#comment-composer-heading">
+            0 comments, join the discussion
+        </a>
+    </div>
+
+
+      
+  <footer class="profil text-center">
+    <p class="long-text text-uppercase">About Clément Renault</p>
+    <p class="text-center">I am the co-founder and CTO of <a href="https://github.com/meilisearch">@meilisearch</a>. I learned coding at the Paris <a href="https://github.com/42school">@42school</a>. I live in Paris and love video games.</p>
+    <hr class="mb-3"/>
+    <p class="text-center">Subscribe to <a href="/atom.xml">my RSS/Atom feed</a> for the latest updates and articles.</p>
+  </footer>
+
+    </div>
+  </body>
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="auto">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script defer data-domain="blog.kerollmops.com" src="https://plausible.io/js/script.js"></script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦀</text></svg>">
+    <script type="application/javascript" src="/assets/script.js"></script>
+    <script defer type="application/javascript" src="/assets/tiny-utterances.js"></script>
+    <script type="application/javascript" src="/assets/matter.min.js"></script>
+    <script type="application/javascript" src="/assets/balls.js"></script>
+    <link href="assets/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/style.css" rel="stylesheet">
+    <link href="assets/tiny-utterances.css" rel="stylesheet">
+
+    <!-- Primary Meta Tags -->
+    <title>Using Rust and the GitHub CI for my blog</title>
+    <meta name="title" content="Using Rust and the GitHub CI for my blog" />
+    <meta name="description" content=" In my first blog post, I share how I built my blog on GitHub Pages using GitHub CI. Inspired by Utterances, I use GitHub issues to display articles and GitHub API for ease of use. Leveraging Rust, octocrab, Starry Night, and Askama, I generate static pages and ensure code syntax highlighting. Bootstrap and PurgeCSS helped achieve a sleek, high-performing design. My blog is live, open-source, and ready for you to explore on GitHub! " />
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://blog.kerollmops.com/using-rust-and-the-github-ci-for-my-blog" />
+    <meta property="og:title" content="Using Rust and the GitHub CI for my blog" />
+    <meta property="og:description" content=" In my first blog post, I share how I built my blog on GitHub Pages using GitHub CI. Inspired by Utterances, I use GitHub issues to display articles and GitHub API for ease of use. Leveraging Rust, octocrab, Starry Night, and Askama, I generate static pages and ensure code syntax highlighting. Bootstrap and PurgeCSS helped achieve a sleek, high-performing design. My blog is live, open-source, and ready for you to explore on GitHub! " />
+    <meta property="og:image" content="https://blog.kerollmops.com/preview/using-rust-and-the-github-ci-for-my-blog.png" />
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="Using Rust and the GitHub CI for my blog" />
+    <meta property="twitter:title" content="Using Rust and the GitHub CI for my blog" />
+    <meta property="twitter:description" content=" In my first blog post, I share how I built my blog on GitHub Pages using GitHub CI. Inspired by Utterances, I use GitHub issues to display articles and GitHub API for ease of use. Leveraging Rust, octocrab, Starry Night, and Askama, I generate static pages and ensure code syntax highlighting. Bootstrap and PurgeCSS helped achieve a sleek, high-performing design. My blog is live, open-source, and ready for you to explore on GitHub! " />
+    <meta property="twitter:image" content="https://blog.kerollmops.com/preview/using-rust-and-the-github-ci-for-my-blog.png" />
+
+    
+  <meta name="description" content="Article by Clément Renault titled: Using Rust and the GitHub CI for my blog.">
+  <link rel="stylesheet" href="/assets/starry-night.css">
+  <style></style>
+
+  </head>
+  <body>
+    <canvas id="ballsCanvas"></canvas>
+    <div class="container">
+      
+<header class="profil">
+  <a href="/">
+      <div class="text-center">
+          <img src="https://avatars.githubusercontent.com/u/3610253?v=4&s=100" class="profil-picture" alt="Profil picture of Clément Renault">
+          <p class="long-text text-uppercase">Clément Renault</p>
+      </div>
+  </a>
+</header>
+
+
+      
+    <p class="text-center">
+        <small class="text-body-secondary"><i>August 09, 2023</i> — <a href="https://github.com/Kerollmops/blog/issues/1#comment-composer-heading">0 comments</a></small>
+    </p>
+    <article>
+        <h1 class="mb-4 text-center">Using Rust and the GitHub CI for my blog</h1>
+
+        <html><head></head><body><p dir="auto">This blog post will talk about how I created my first-ever blog website, and you are currently reading the first post of it. It is hosted <a href="https://pages.github.com/">on GitHub Pages</a> and uses GitHub CI extensively.</p>
+<p dir="auto">Before creating this website by hand, I hesitated with <a href="https://world.hey.com" rel="nofollow">the Hey.com blog hosting service</a>. The one advantage is that exposing your thoughts online will not take a week the first time. Sending an email will publish your post.</p>
+<p dir="auto">However, there is a reason why I didn't choose <em>world.hey.com</em> for my blog: I don't want to be locked in on this platform, and code highlighting needs to be supported.</p>
+<div class="highlight highlight-source-rust notranslate position-relative overflow-auto" data-snippet-clipboard-copy-content="fn main() {
+    println!(&quot;That's so much better than world.hey.com...&quot;);
+}" dir="auto"><pre class="notranslate"><span class="pl-k">fn</span> <span class="pl-en">main</span><span class="pl-kos">(</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+    <span class="pl-en">println</span><span class="pl-en">!</span><span class="pl-kos">(</span><span class="pl-s">"That's so much better than world.hey.com..."</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+<span class="pl-kos">}</span></pre></div>
+<p dir="auto">So, I decided to take inspiration from <a href="https://utteranc.es" rel="nofollow">Utterances</a> and use issues to display articles on my blog. The first message of an issue labeled as <em>article</em> is displayed on my blog. Note that I am the only one having triage rights, I can label any issue as an article, even someone else's issue and it will be correctly displayed on my blog with the right profil picture and name. Whenever an issue is edited, GitHub triggers the CI and generates the static HTML pages. The GitHub iOS app is excellent for editing issues with markdown, adding links, images, code blocks...</p>
+<p dir="auto">It was a great surprise how easy it was to make this blog alive. The GitHub API is so complete and easy to use. As I am building the static page generation in Rust, I used <a href="https://github.com/xampprocky/octocrab">the octocrab library</a> for easiness. The most exciting part was that GitHub exposes a complete HTML document of the content of your issues, especially exposing the code blocks' tokens with the proper syntax highlighting. <a href="https://github.com/wooorm/starry-night">The Starry Night library</a> was quite helpful in generating the colors for these tokens!</p>
+<p dir="auto">Once I retrieved the issue HTML content, I used <a href="https://github.com/djc/askama">the Askama templating library</a> to generate the static pages. Pages are accessible via the snake case-encoded issue title. But one new issue just raised: Whenever I update the article's title, it will break the page link. I <a href="https://gist.github.com/fuzzmz/4202732">read on the internet</a> and discovered that creating HTML redirection pages was possible. Cool, right?! The GitHub API also exposes the renaming events. I used those events to generate the redirection static pages from every previous issue title to the current one!</p>
+<p dir="auto">Now, it's time to make it pretty. I used Bootstrap because I wanted to avoid learning a new CSS tool and because I find it better to use boring technology when it perfectly does the job. By using version 5.3, you even got dark/light mode out of the box. However, Bootstrap is extensive, and I needed to <a href="https://purgecss.com/" rel="nofollow">use PurgeCSS</a> to remove more than 224ko of unused CSS rules. By doing so, <a href="https://pagespeed.web.dev/analysis/https-blog-kerollmops-com-using-rust-and-the-github-ci-for-my-blog/j5osbgkv9i?form_factor=mobile" rel="nofollow">I achieved 100% on every performance gauge</a> of the Google Pagespeed website 👌</p>
+<p dir="auto">This blog website is <a href="https://github.com/Kerollmops/blog">available on GitHub</a>. Host it under your GitHub account and have a pretty blog website. Create issues and edit them to see them alive. There are some improvements to make, like using the repository description as the meta description used by the search engines or fixing some issues I got with the images backed-up by camo <del>or replacing the <code class="notranslate">@</code> references with links from the author bio text</del>...</p></body></html>
+    </article>
+
+    <div class="vote-emojis">
+    <a class="btn btn-outline-secondary vote-emoji" href="https://github.com/Kerollmops/blog/issues/1#comment-composer-heading" role="button">🙂 ✚</a>
+
+    
+
+    
+
+    
+
+    
+        <a class="btn btn-outline-secondary vote-emoji" href="https://github.com/Kerollmops/blog/issues/1#comment-composer-heading" role="button">❤️ 1</a>
+    
+
+    
+
+    
+
+    
+        <a class="btn btn-outline-secondary vote-emoji" href="https://github.com/Kerollmops/blog/issues/1#comment-composer-heading" role="button">🚀 2</a>
+    
+
+    
+        <a class="btn btn-outline-secondary vote-emoji" href="https://github.com/Kerollmops/blog/issues/1#comment-composer-heading" role="button">👀 1</a>
+    
+    </div>
+
+    <div class="tiny-utterances"
+        data-repo-owner="Kerollmops"
+        data-repo-name="blog"
+        data-issue-number="1"
+        data-max-comments="10">
+        <a class="tu-button"
+            href="https://github.com/Kerollmops/blog/issues/1#comment-composer-heading">
+            0 comments, join the discussion
+        </a>
+    </div>
+
+
+      
+  <footer class="profil text-center">
+    <p class="long-text text-uppercase">About Clément Renault</p>
+    <p class="text-center">I am the co-founder and CTO of <a href="https://github.com/meilisearch">@meilisearch</a>. I learned coding at the Paris <a href="https://github.com/42school">@42school</a>. I live in Paris and love video games.</p>
+    <hr class="mb-3"/>
+    <p class="text-center">Subscribe to <a href="/atom.xml">my RSS/Atom feed</a> for the latest updates and articles.</p>
+  </footer>
+
+    </div>
+  </body>
+</html>

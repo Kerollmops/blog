@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="auto">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script defer data-domain="blog.kerollmops.com" src="https://plausible.io/js/script.js"></script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦀</text></svg>">
+    <script type="application/javascript" src="/assets/script.js"></script>
+    <script defer type="application/javascript" src="/assets/tiny-utterances.js"></script>
+    <script type="application/javascript" src="/assets/matter.min.js"></script>
+    <script type="application/javascript" src="/assets/balls.js"></script>
+    <link href="assets/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/style.css" rel="stylesheet">
+    <link href="assets/tiny-utterances.css" rel="stylesheet">
+
+    <!-- Primary Meta Tags -->
+    <title>From trees to graphs: speeding up vector search 10x with Hannoy</title>
+    <meta name="title" content="From trees to graphs: speeding up vector search 10x with Hannoy" />
+    <meta name="description" content=" This is a walkthrough of a new LMDB-based HNSW Rust vector store with drastically better performances than the previous random-projection-based one. This is a disk-based HNSW highly vector store inspired by the DiskANN technology and is now used by default in Meilisearch. " />
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://blog.kerollmops.com/from-trees-to-graphs-speeding-up-vector-search-10x-with-hannoy" />
+    <meta property="og:title" content="From trees to graphs: speeding up vector search 10x with Hannoy" />
+    <meta property="og:description" content=" This is a walkthrough of a new LMDB-based HNSW Rust vector store with drastically better performances than the previous random-projection-based one. This is a disk-based HNSW highly vector store inspired by the DiskANN technology and is now used by default in Meilisearch. " />
+    <meta property="og:image" content="https://blog.kerollmops.com/preview/from-trees-to-graphs-speeding-up-vector-search-10x-with-hannoy.png" />
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="From trees to graphs: speeding up vector search 10x with Hannoy" />
+    <meta property="twitter:title" content="From trees to graphs: speeding up vector search 10x with Hannoy" />
+    <meta property="twitter:description" content=" This is a walkthrough of a new LMDB-based HNSW Rust vector store with drastically better performances than the previous random-projection-based one. This is a disk-based HNSW highly vector store inspired by the DiskANN technology and is now used by default in Meilisearch. " />
+    <meta property="twitter:image" content="https://blog.kerollmops.com/preview/from-trees-to-graphs-speeding-up-vector-search-10x-with-hannoy.png" />
+
+    
+  <meta name="description" content="Article by Nate Nethercott titled: From trees to graphs: speeding up vector search 10x with Hannoy.">
+  <link rel="stylesheet" href="/assets/starry-night.css">
+  <style></style>
+
+  </head>
+  <body>
+    <canvas id="ballsCanvas"></canvas>
+    <div class="container">
+      
+<header class="profil">
+  <a href="/">
+      <div class="text-center">
+          <img src="https://avatars.githubusercontent.com/u/53127799?v=4&s=100" class="profil-picture" alt="Profil picture of Nate Nethercott">
+          <p class="long-text text-uppercase">Nate Nethercott</p>
+      </div>
+  </a>
+</header>
+
+
+      
+    <p class="text-center">
+        <small class="text-body-secondary"><i>December 08, 2025</i> — <a href="https://github.com/Kerollmops/blog/issues/20#comment-composer-heading">0 comments</a></small>
+    </p>
+    <article>
+        <h1 class="mb-4 text-center">From trees to graphs: speeding up vector search 10x with Hannoy</h1>
+
+        <html><head></head><body><p dir="auto">This article aims to address several limitations of the current vector database used by Meilisearch, and to introduce <a href="https://github.com/nnethercott/hannoy">hannoy: a graph-based alternative to arroy using LMDB</a>, which is already part of Meilisearch since v1.21 (Sept 15) as experimental and <a href="https://github.com/meilisearch/meilisearch/releases/tag/v1.29.0">the default one since v1.29 (Dec 8)</a>.</p>
+<p dir="auto">Early testing has shown that the new system can reduce indexing times from 2 days to 2 hours, decrease the on-disk index size by a factor of 2, and speed up search by ~10 times. When it was first put into production on an instance with indexing difficulties, it reduced the indexing latency from 2 months to... 6 seconds.</p>
+<p dir="auto">To illustrate why this is the case, I'll run through some key heuristics of graph ANN algorithms and share a few snippets from the code that are particularly illustrative. Finally, we'll share some benchmarks comparing the new solution to what's currently in Meilisearch today.</p>
+<div class="markdown-alert markdown-alert-note" dir="auto"><p class="markdown-alert-title" dir="auto"><svg aria-hidden="true" class="octicon octicon-info mr-2" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p><p dir="auto">I am not a Meilisearch employee or affiliated with the company in any way other than being a co-author on their new vector database.</p>
+</div>
+<h3 id="open-source-first-steps-skippable-cutscene" dir="auto"><a href="#open-source-first-steps-skippable-cutscene">Open Source First Steps (skippable cutscene)</a></h3>
+<p dir="auto">I first became aware of Meilisearch back in March, when my company began considering their enterprise solution for hosting and indexing our collection of ~10 million documents.  As any sane person would do, I stalked their GitHub and was overwhelmed by the sheer volume of in-house crates they maintained and used in their search engine. Amongst them was <a href="https://github.com/meilisearch/arroy">arroy: a k-d trees inspired vector database</a>, based initially on Spotify's similarly named project: annoy.</p>
+<p dir="auto">Wasting no time, I made <a data-hovercard-type="pull_request" data-hovercard-url="/meilisearch/arroy/pull/124/hovercard" href="https://github.com/meilisearch/arroy/pull/124">my first open source contribution ever</a> to the repo and... welp, it's still not merged 😔.  But hey, as the French say: <em>that's life</em>.</p>
+<p dir="auto">Fortunately, I was still able to merge a few other PR's in the meantime and learn more about how the algorithm worked. The back and forth I had with other devs throughout the process (notably with <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/irevoire/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/irevoire">@irevoire</a>) was instructive and overall made it a pretty enjoyable experience.</p>
+<p dir="auto">After a couple of months of working on arroy, I naturally became aware of a few unsavoury trade-offs that lurked beneath the surface, and which ultimately motivated me to pursue a new approach.</p>
+<h3 id="limitations-of-the-current-system" dir="auto"><a href="#limitations-of-the-current-system">Limitations of the Current System</a></h3>
+<p dir="auto">Arroy is a k-d tree-based ANN algorithm, meaning that during indexing, you construct an ensemble of random partitions of your vector space, and at runtime, you search through them all simultaneously. To be more precise, it's <a href="https://en.wikipedia.org/wiki/Locality-sensitive_hashing#Random_projection" rel="nofollow">random-projection-based</a>.</p>
+<p dir="auto">Visually, that process looks like the pic below:</p>
+<div dir="auto">
+  <a href="assets/images/5f1cd13a1364cb63.jpg" rel="noopener noreferrer" target="_blank"><img alt="Image" src="assets/images/5f1cd13a1364cb63.jpg" style="max-width: 100%;"></a>
+</div>
+<p dir="auto"><a href="https://suhasjs.github.io/files/diskann_neurips19.pdf" rel="nofollow">A widespread criticism of this type of approach</a> is that search performance and latency degrade when the dimension of the embeddings exceeds about 20.  Let's try to understand why.</p>
+<p dir="auto">Looking at <a href="https://github.com/meilisearch/arroy/blob/88eb1affedcd11520d8a20910bd17b604705d48d/src/writer.rs#L472-L477">the code</a>, we see that leaf nodes store as many vectors as the embedding dimension. This is a good and bad thing.  In the extreme case where "one leaf equals one vector", e.g., you have a binary tree, each tree has height <em>log2(n)</em>. By grouping <em>d</em>-many vectors in a leaf, trees can be built <em>much</em> faster since they only have height <em>log2(n/d)</em>. For 1 million vectors of dimension 768, the numbers work out to building trees with heights of 10 versus 20; that's a 2.6 MiB versus 1.9 GiB in storage overhead for a single tree. This makes arroy B-tree-like, which is cool.</p>
+<p dir="auto">Where this is problematic, however, is at search time since <a href="https://github.com/meilisearch/arroy/blob/88eb1affedcd11520d8a20910bd17b604705d48d/src/reader.rs#L355-L359">you need to compare the query to <strong>each</strong> vector in a leaf</a>. Even if you're only trying to retrieve the 10 nearest-neighbours, you still need to do 768 distance calculations 😔. That adds significant latency during retrieval.</p>
+<p dir="auto">Unfortunately, there's no "nice" compromise; if you make leaves more granular, you need to store more nodes in the tree, which increases the index size in memory and exponentially increases build times, as we've seen.</p>
+<div class="markdown-alert markdown-alert-tip" dir="auto"><p class="markdown-alert-title" dir="auto"><svg aria-hidden="true" class="octicon octicon-light-bulb mr-2" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path d="M8 1.5c-2.363 0-4 1.69-4 3.75 0 .984.424 1.625.984 2.304l.214.253c.223.264.47.556.673.848.284.411.537.896.621 1.49a.75.75 0 0 1-1.484.211c-.04-.282-.163-.547-.37-.847a8.456 8.456 0 0 0-.542-.68c-.084-.1-.173-.205-.268-.32C3.201 7.75 2.5 6.766 2.5 5.25 2.5 2.31 4.863 0 8 0s5.5 2.31 5.5 5.25c0 1.516-.701 2.5-1.328 3.259-.095.115-.184.22-.268.319-.207.245-.383.453-.541.681-.208.3-.33.565-.37.847a.751.751 0 0 1-1.485-.212c.084-.593.337-1.078.621-1.489.203-.292.45-.584.673-.848.075-.088.147-.173.213-.253.561-.679.985-1.32.985-2.304 0-2.06-1.637-3.75-4-3.75ZM5.75 12h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5ZM6 15.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Z"></path></svg>Tip</p><p dir="auto">When using binary vectors and a <a href="https://en.wikipedia.org/wiki/Locality-sensitive_hashing#Bit_sampling_for_Hamming_distance" rel="nofollow">bit-sampling hash</a>, the memory overhead is just a single <code class="notranslate">usize</code> per node indicating the position of the random bit. This is the only case where we can afford to generate deeper trees, as storing a node on disk incurs next to no cost.</p>
+</div>
+<p dir="auto">Another big problem with arroy is that the indexing algorithm is extremely <em>read-heavy</em>. That makes sense given that to create a hyperplane, you need to <a href="https://github.com/meilisearch/arroy/blob/88eb1affedcd11520d8a20910bd17b604705d48d/src/distance/mod.rs#L126-L171">randomly sample points from the current node</a> to generate clusters. The impact of this is so high that in some builds, over 90% of the time is spent doing IO and in page faults - a problem that only grows exponentially with dataset size. This phenomenon is still unresolved, as documented in <a data-hovercard-type="issue" data-hovercard-url="/meilisearch/arroy/issues/145/hovercard" href="https://github.com/meilisearch/arroy/issues/145">arroy#145</a>.</p>
+<a href="assets/images/d8d86de48c1a0a6b.png" rel="noopener noreferrer" target="_blank"><img alt="Image" height="554" src="assets/images/d8d86de48c1a0a6b.png" style="max-width: 100%; height: auto; max-height: 554px;" width="2000"></a>
+<p dir="auto">Operational concerns aside, it's also just difficult to maintain arroy. There's a lot of mental gymnastics involved in understanding the recursive tree balancing algorithms, the creation and merging of temp files during partial builds, and the heuristics for auto-selecting build parameters. But hey, maybe that's a skill issue on my part.</p>
+<h3 id="graph-anns-to-the-rescue" dir="auto"><a href="#graph-anns-to-the-rescue">Graph ANNs to the Rescue?</a></h3>
+<p dir="auto">Current state-of-the-art ANN libraries employ graph-based approaches to achieve the optimal trade-off between search time and recall performance. Here, a navigable graph is built over all points in the database, and search is performed using a best-first traversal in log time. So rather than imposing structure on the dataset via separating hyperplanes like in arroy, techniques like <a href="https://en.wikipedia.org/wiki/Hierarchical_navigable_small_world" rel="nofollow">HNSW</a> and <a href="https://github.com/microsoft/DiskANN">DiskANN</a> focus more on building up pathways between points in local neighbourhoods.</p>
+<p dir="auto">If you haven't already read it, I'd recommend <a href="https://www.pinecone.io/learn/series/faiss/hnsw/" rel="nofollow">Pinecone's fantastic blog post</a> on Faiss and the hnsw to get a working mental model of how these algorithms work. For the academically inclined, the <a href="https://arxiv.org/abs/1603.09320" rel="nofollow">original paper</a> is also quite insightful.</p>
+<p dir="auto"><a href="assets/images/e25c52c2d47d3fcd.jpg" rel="noopener noreferrer" target="_blank"><img alt="Image" src="assets/images/e25c52c2d47d3fcd.jpg" style="max-width: 100%;"></a></p>
+<p dir="auto">For the search to converge quickly to the (approximate) nearest neighbour, the graph needs to satisfy what's known as the <em>sparse neighbourhood graph (SNG)</em> property. Put simply, points in a local neighbourhood of <em>x</em> should be closer to <em>x</em> than they are to each other. For the mathematically inclined, this property reduces to the relations below :</p>
+<p dir="auto"><a href="assets/images/3bdd6c7cca4b6674.jpg" rel="noopener noreferrer" target="_blank"><img alt="Image" src="assets/images/3bdd6c7cca4b6674.jpg" style="max-width: 100%;"></a></p>
+<p dir="auto">See, it's easy!</p>
+<p dir="auto">This equation is the "secret sauce," if you will, of graph ANNs. Both the HNSW, DiskANN, and hannoy! rely on this to ensure efficient search.</p>
+<p dir="auto"><a href="assets/images/10dde2cbcc241836.jpg" rel="noopener noreferrer" target="_blank"><img alt="Image" src="assets/images/10dde2cbcc241836.jpg" style="max-width: 100%;"></a></p>
+<p dir="auto">Vector search over a graph has several advantages over space-partitioning approaches. First of all, it's <em>extremely cheap</em> to store node edges on disk at around ~200 bytes per vector even without using <a href="https://github.com/RoaringBitmap/roaring-rs">compressed bitmaps</a> (which we do). For another, disk reads and distance computations at search time are significantly reduced as neighbours are explored one at a time instead of in large chunks. Insertions and deletions are also much simpler using a graph, as we only need to update the incoming/outgoing links from the modified nodes. In contrast, in arroy these operations potentially trigger tree re-balancing right up to the root.</p>
+<p dir="auto">Despite these drawbacks, arroy is still <strong>great</strong> in the sense that it's <em>disk-based</em>, being built on top of LMDB. This means that you can build and search through indexes that are much larger than your machine's RAM using <a href="https://en.wikipedia.org/wiki/Memory_map" rel="nofollow">mmap</a>. For reference, many popular HNSW implementations operate entirely in RAM, which is fast but requires multiple nodes and partitioning if the dataset becomes too large. So arroy was pretty avant-garde in that respect.</p>
+<h3 id="hannoy" dir="auto"><a href="#hannoy">Hannoy</a></h3>
+<p dir="auto"><a href="https://github.com/nnethercott/hannoy">Hannoy</a> is a graph-based successor to arroy with KV-backed storage via LMDB.</p>
+<p dir="auto">The goal of hannoy is to combine the best of both worlds from arroy and graph ANNs into a production-ready vector database that maintains and improves upon key metrics vs the legacy system. What's also neat is that it makes heavy use of crates maintained by the Meilisearch devs, such as <a href="https://github.com/meilisearch/heed">heed</a>, <a href="https://github.com/RoaringBitmap/roaring-rs">roaring-rs</a>, and <a href="https://github.com/irevoire/steppe">steppe</a>.</p>
+<p dir="auto">Its implementation is inspired by a few projects, notably <a href="https://github.com/facebookresearch/faiss/blob/main/faiss/impl/HNSW.cpp">Faiss' HNSW</a> and the <a href="https://crates.io/crates/hnsw" rel="nofollow"><code class="notranslate">hnsw</code> crate</a>, but with significantly more support for zero-copy semantics, persistence, SIMD, and online updates &amp; multi-phase indexing. There are also several novel techniques inspired by research papers to handle tasks such as graph merges and layer exploration.</p>
+<p dir="auto">The most interesting engineering challenge of the project was determining how to handle incremental insertions and deletions to the graph over its lifetime. After all, we expect users' databases to grow over time, and not all their data is available immediately. The industry standard for graph algorithms had been to <em>periodically rebuild the index</em> either on a cron-like schedule or after sufficient updates had accumulated. The FreshDiskANN paper summarizes this issue with this type of approach succinctly:</p>
+<blockquote>
+<p dir="auto">It would take about 1.5-2 hours on a dedicated high-end 48-core machine to build a good-quality HNSW index over 100M points. So we would need three dedicated machines for constantly rebuilding indices to maintain even six-hourly freshness guarantee over a billion point index. <a href="https://arxiv.org/abs/2105.09613" rel="nofollow">[1]</a></p>
+</blockquote>
+<p dir="auto">Yeah, so that's not great :/</p>
+<p dir="auto">Luckily for us, <a href="https://arxiv.org/abs/2105.09613" rel="nofollow">Microsoft has already solved this problem</a>. The idea essentially boils down to avoiding <em>eager</em> updates to the graph by orchestrating a streaming delete/insert/merge operation once the size of a particular in-memory temporary index reaches a critical size. While this is certainly a proven strategy, with hannoy we aimed to implement something a bit less complicated, but which still makes liberal use of techniques from DiskANN (even though technically hannoy is an HNSW).</p>
+<p dir="auto"><a href="assets/images/c373ed59f93a1e53.jpg" rel="noopener noreferrer" target="_blank"><img alt="Image" src="assets/images/c373ed59f93a1e53.jpg" style="max-width: 100%;"></a></p>
+<p dir="auto">Ok, so how do we do it?</p>
+<p dir="auto">When items are added or deleted from the graph, a special <code class="notranslate">Updated</code> key is written to the database pointing to the modified node. Before building the index, we generate a bitset of items that are (i) new, (ii) modified, or (iii) removed &amp; pass those to the <a href="https://github.com/nnethercott/hannoy/blob/89c9c3d94dd00487d1c99ac6623908d57227e729/src/hnsw.rs#L122-L135"><code class="notranslate">HnswBuilder</code></a>. The deletion bitset plays a special role at the end of the build where instead of just removing any edge <math-renderer class="js-inline-math" data-run-id="ff7ac52fa1b2c68758abcd67adfb7766" style="display: inline-block">$(e,d)$</math-renderer> between an <em>existing</em> and <em>deleted</em> item, we explore the neighbourhood of <math-renderer class="js-inline-math" data-run-id="ff7ac52fa1b2c68758abcd67adfb7766" style="display: inline-block">$d$</math-renderer> to patch the links of <math-renderer class="js-inline-math" data-run-id="ff7ac52fa1b2c68758abcd67adfb7766" style="display: inline-block">$e$</math-renderer> à la DiskANN. This prevents "gaps" from appearing in the graph and ensures search still converges quickly (recall that SNG property from earlier 😉).</p>
+<p dir="auto">The code below shows how we accomplish this in hannoy:</p>
+<div class="highlight highlight-source-rust notranslate position-relative overflow-auto" data-snippet-clipboard-copy-content="fn maybe_patch_old_links(
+    &amp;mut self,
+    lmdb: &amp;FrozenReader<D>,
+    to_delete: &amp;RoaringBitmap,
+    options: &amp;BuildOption,
+) -> Result<()>
+{
+    // recover list of graph edges in the on-disk index
+    let links_in_db: Vec<_> = todo!();
+
+    links_in_db.into_par_iter().try_for_each(|result| {
+        let ((id, lvl), links) = result?;
+
+        // don't need to patch links of deleted items
+        if to_delete.contains(id) {
+            return Ok(());
+        }
+        let del_subset = &amp;links &amp; to_delete;
+
+        // Get links for item `id` from current build in level `lvl`
+        let mut new_links = self.layers[lvl].get(&amp;id).map(|s| s.links).unwrap_or_default();
+
+        // No work to be done, continue
+        if del_subset.is_empty() &amp;&amp; new_links.is_empty() {
+            return Ok(());
+        }
+
+        // DiskANN-style deletion policy
+        let mut bitmap = RoaringBitmap::new();
+        for item_id in del_subset.iter() {
+            bitmap.extend(lmdb.get_links(item_id, lvl)?.iter());
+        }
+        bitmap |= links;
+        bitmap -= to_delete;
+
+        for other in bitmap {
+            let dist = D::distance(&amp;lmdb.get_item(id)?, &amp;lmdb.get_item(other)?);
+            new_links.push((OrderedFloat(dist), other));
+        }
+        let pruned = self.robust_prune(new_links, lvl, lmdb)?;  // prunes `new_links` down to a manageable size
+        self.layers[lvl].insert(id, NodeState { links: ArrayVec::from_iter(pruned) });
+        Ok(())
+    })?;
+
+    Ok(())
+}" dir="auto"><pre class="notranslate"><span class="pl-k">fn</span> <span class="pl-en">maybe_patch_old_links</span><span class="pl-kos">(</span>
+    <span class="pl-c1">&amp;</span><span class="pl-k">mut</span> <span class="pl-smi">self</span><span class="pl-kos">,</span>
+    <span class="pl-s1">lmdb</span><span class="pl-kos">:</span> <span class="pl-c1">&amp;</span><span class="pl-smi">FrozenReader</span><span class="pl-kos">&lt;</span><span class="pl-smi">D</span><span class="pl-kos">&gt;</span><span class="pl-kos">,</span>
+    <span class="pl-s1">to_delete</span><span class="pl-kos">:</span> <span class="pl-c1">&amp;</span><span class="pl-smi">RoaringBitmap</span><span class="pl-kos">,</span>
+    <span class="pl-s1">options</span><span class="pl-kos">:</span> <span class="pl-c1">&amp;</span><span class="pl-smi">BuildOption</span><span class="pl-kos">,</span>
+<span class="pl-kos">)</span> -&gt; <span class="pl-smi">Result</span><span class="pl-kos">&lt;</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">&gt;</span>
+<span class="pl-kos">{</span>
+    <span class="pl-c">// recover list of graph edges in the on-disk index</span>
+    <span class="pl-k">let</span> links_in_db<span class="pl-kos">:</span> <span class="pl-smi">Vec</span><span class="pl-kos">&lt;</span><span class="pl-smi">_</span><span class="pl-kos">&gt;</span> = <span class="pl-en">todo</span><span class="pl-en">!</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+
+    links_in_db<span class="pl-kos">.</span><span class="pl-en">into_par_iter</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-en">try_for_each</span><span class="pl-kos">(</span>|result| <span class="pl-kos">{</span>
+        <span class="pl-k">let</span> <span class="pl-kos">(</span><span class="pl-kos">(</span>id<span class="pl-kos">,</span> lvl<span class="pl-kos">)</span><span class="pl-kos">,</span> links<span class="pl-kos">)</span> = result?<span class="pl-kos">;</span>
+
+        <span class="pl-c">// don't need to patch links of deleted items</span>
+        <span class="pl-k">if</span> to_delete<span class="pl-kos">.</span><span class="pl-en">contains</span><span class="pl-kos">(</span>id<span class="pl-kos">)</span> <span class="pl-kos">{</span>
+            <span class="pl-k">return</span> <span class="pl-en">Ok</span><span class="pl-kos">(</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+        <span class="pl-kos">}</span>
+        <span class="pl-k">let</span> del_subset = <span class="pl-c1">&amp;</span>links <span class="pl-c1">&amp;</span> to_delete<span class="pl-kos">;</span>
+
+        <span class="pl-c">// Get links for item `id` from current build in level `lvl`</span>
+        <span class="pl-k">let</span> <span class="pl-k">mut</span> new_links = <span class="pl-smi">self</span><span class="pl-kos">.</span><span class="pl-c1">layers</span><span class="pl-kos">[</span>lvl<span class="pl-kos">]</span><span class="pl-kos">.</span><span class="pl-en">get</span><span class="pl-kos">(</span><span class="pl-c1">&amp;</span>id<span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-en">map</span><span class="pl-kos">(</span>|s| s<span class="pl-kos">.</span><span class="pl-c1">links</span><span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-en">unwrap_or_default</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+
+        <span class="pl-c">// No work to be done, continue</span>
+        <span class="pl-k">if</span> del_subset<span class="pl-kos">.</span><span class="pl-en">is_empty</span><span class="pl-kos">(</span><span class="pl-kos">)</span> &amp;&amp; new_links<span class="pl-kos">.</span><span class="pl-en">is_empty</span><span class="pl-kos">(</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+            <span class="pl-k">return</span> <span class="pl-en">Ok</span><span class="pl-kos">(</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+        <span class="pl-kos">}</span>
+
+        <span class="pl-c">// DiskANN-style deletion policy</span>
+        <span class="pl-k">let</span> <span class="pl-k">mut</span> bitmap = <span class="pl-smi">RoaringBitmap</span><span class="pl-kos">::</span><span class="pl-en">new</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+        <span class="pl-k">for</span> item_id <span class="pl-k">in</span> del_subset<span class="pl-kos">.</span><span class="pl-en">iter</span><span class="pl-kos">(</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+            bitmap<span class="pl-kos">.</span><span class="pl-en">extend</span><span class="pl-kos">(</span>lmdb<span class="pl-kos">.</span><span class="pl-en">get_links</span><span class="pl-kos">(</span>item_id<span class="pl-kos">,</span> lvl<span class="pl-kos">)</span>?<span class="pl-kos">.</span><span class="pl-en">iter</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+        <span class="pl-kos">}</span>
+        bitmap |= links<span class="pl-kos">;</span>
+        bitmap -= to_delete<span class="pl-kos">;</span>
+
+        <span class="pl-k">for</span> other <span class="pl-k">in</span> bitmap <span class="pl-kos">{</span>
+            <span class="pl-k">let</span> dist = <span class="pl-smi">D</span><span class="pl-kos">::</span><span class="pl-en">distance</span><span class="pl-kos">(</span><span class="pl-c1">&amp;</span>lmdb<span class="pl-kos">.</span><span class="pl-en">get_item</span><span class="pl-kos">(</span>id<span class="pl-kos">)</span>?<span class="pl-kos">,</span> <span class="pl-c1">&amp;</span>lmdb<span class="pl-kos">.</span><span class="pl-en">get_item</span><span class="pl-kos">(</span>other<span class="pl-kos">)</span>?<span class="pl-kos">)</span><span class="pl-kos">;</span>
+            new_links<span class="pl-kos">.</span><span class="pl-en">push</span><span class="pl-kos">(</span><span class="pl-kos">(</span><span class="pl-en">OrderedFloat</span><span class="pl-kos">(</span>dist<span class="pl-kos">)</span><span class="pl-kos">,</span> other<span class="pl-kos">)</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+        <span class="pl-kos">}</span>
+        <span class="pl-k">let</span> pruned = <span class="pl-smi">self</span><span class="pl-kos">.</span><span class="pl-en">robust_prune</span><span class="pl-kos">(</span>new_links<span class="pl-kos">,</span> lvl<span class="pl-kos">,</span> lmdb<span class="pl-kos">)</span>?<span class="pl-kos">;</span>  <span class="pl-c">// prunes `new_links` down to a manageable size</span>
+        <span class="pl-smi">self</span><span class="pl-kos">.</span><span class="pl-c1">layers</span><span class="pl-kos">[</span>lvl<span class="pl-kos">]</span><span class="pl-kos">.</span><span class="pl-en">insert</span><span class="pl-kos">(</span>id<span class="pl-kos">,</span> <span class="pl-smi">NodeState</span> <span class="pl-kos">{</span> <span class="pl-c1">links</span><span class="pl-kos">:</span> <span class="pl-smi">ArrayVec</span><span class="pl-kos">::</span><span class="pl-en">from_iter</span><span class="pl-kos">(</span>pruned<span class="pl-kos">)</span> <span class="pl-kos">}</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+        <span class="pl-en">Ok</span><span class="pl-kos">(</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">)</span>
+    <span class="pl-kos">}</span><span class="pl-kos">)</span>?<span class="pl-kos">;</span>
+
+    <span class="pl-en">Ok</span><span class="pl-kos">(</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">)</span>
+<span class="pl-kos">}</span></pre></div>
+<p dir="auto">Another interesting feature of hannoy is how the new graph (in RAM) is merged with the old one (from disk, in LMDB). For each batch of points to be inserted, we build a brand new HNSW in RAM. To ensure that this new graph connects to the old one, we reschedule the entry points of the old graph for re-indexing in the new one. Every time we need to access an item's links, we look in both memory and LMDB. This way, we can establish connections with the larger disk-based index in a lazy manner. This is essential, as otherwise, any new vectors inserted into the database after the initial build would be unreachable; you'd only be able to search in disjoint graphs, and recall would suffer.</p>
+<div class="highlight highlight-source-rust notranslate position-relative overflow-auto" data-snippet-clipboard-copy-content="/// Returns only the Id's of our neighbours. Always check lmdb first.
+#[instrument(level = &quot;trace&quot;, skip(self, lmdb))]
+fn get_neighbours(
+    &amp;self,
+    lmdb: &amp;FrozenReader<'_, D>,
+    item_id: ItemId,
+    level: usize,
+    build_stats: &amp;BuildStats<D>,
+) -> Result<Vec<ItemId>> {
+    let mut res = Vec::new();
+
+    // O(1) from frozzenreader
+    if let Ok(Links { links }) = lmdb.get_links(item_id, level) {
+        build_stats.incr_lmdb_hits();
+        res.extend(links.iter());
+    }
+
+    // O(1) from self.layers
+    let Some(map) = self.layers.get(level) else { return Ok(res) };
+    match map.pin().get(&amp;item_id) {
+        Some(node_state) => res.extend(node_state.links.iter().map(|(_, i)| *i)),
+        None => {
+            // lazily add this entry
+            self.add_in_layers_below(item_id, level);
+        }
+    }
+
+    Ok(res)
+}" dir="auto"><pre class="notranslate"><span class="pl-c">/// Returns only the Id's of our neighbours. Always check lmdb first.</span>
+<span class="pl-c"></span><span class="pl-c1">#<span class="pl-kos">[</span>instrument<span class="pl-kos">(</span>level = <span class="pl-s">"trace"</span><span class="pl-kos">,</span> skip<span class="pl-kos">(</span><span class="pl-smi">self</span><span class="pl-kos">,</span> lmdb<span class="pl-kos">)</span><span class="pl-kos">)</span><span class="pl-kos">]</span></span>
+<span class="pl-k">fn</span> <span class="pl-en">get_neighbours</span><span class="pl-kos">(</span>
+    <span class="pl-c1">&amp;</span><span class="pl-smi">self</span><span class="pl-kos">,</span>
+    <span class="pl-s1">lmdb</span><span class="pl-kos">:</span> <span class="pl-c1">&amp;</span><span class="pl-smi">FrozenReader</span><span class="pl-kos">&lt;</span><span class="pl-c1">'</span><span class="pl-ent">_</span><span class="pl-kos">,</span> <span class="pl-smi">D</span><span class="pl-kos">&gt;</span><span class="pl-kos">,</span>
+    <span class="pl-s1">item_id</span><span class="pl-kos">:</span> <span class="pl-smi">ItemId</span><span class="pl-kos">,</span>
+    <span class="pl-s1">level</span><span class="pl-kos">:</span> <span class="pl-smi">usize</span><span class="pl-kos">,</span>
+    <span class="pl-s1">build_stats</span><span class="pl-kos">:</span> <span class="pl-c1">&amp;</span><span class="pl-smi">BuildStats</span><span class="pl-kos">&lt;</span><span class="pl-smi">D</span><span class="pl-kos">&gt;</span><span class="pl-kos">,</span>
+<span class="pl-kos">)</span> -&gt; <span class="pl-smi">Result</span><span class="pl-kos">&lt;</span><span class="pl-smi">Vec</span><span class="pl-kos">&lt;</span><span class="pl-smi">ItemId</span><span class="pl-kos">&gt;</span><span class="pl-kos">&gt;</span> <span class="pl-kos">{</span>
+    <span class="pl-k">let</span> <span class="pl-k">mut</span> res = <span class="pl-smi">Vec</span><span class="pl-kos">::</span><span class="pl-en">new</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+
+    <span class="pl-c">// O(1) from frozzenreader</span>
+    <span class="pl-k">if</span> <span class="pl-k">let</span> <span class="pl-v">Ok</span><span class="pl-kos">(</span><span class="pl-smi">Links</span> <span class="pl-kos">{</span> links <span class="pl-kos">}</span><span class="pl-kos">)</span> = lmdb<span class="pl-kos">.</span><span class="pl-en">get_links</span><span class="pl-kos">(</span>item_id<span class="pl-kos">,</span> level<span class="pl-kos">)</span> <span class="pl-kos">{</span>
+        build_stats<span class="pl-kos">.</span><span class="pl-en">incr_lmdb_hits</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+        res<span class="pl-kos">.</span><span class="pl-en">extend</span><span class="pl-kos">(</span>links<span class="pl-kos">.</span><span class="pl-en">iter</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+    <span class="pl-kos">}</span>
+
+    <span class="pl-c">// O(1) from self.layers</span>
+    <span class="pl-k">let</span> <span class="pl-v">Some</span><span class="pl-kos">(</span>map<span class="pl-kos">)</span> = <span class="pl-smi">self</span><span class="pl-kos">.</span><span class="pl-c1">layers</span><span class="pl-kos">.</span><span class="pl-en">get</span><span class="pl-kos">(</span>level<span class="pl-kos">)</span> <span class="pl-k">else</span> <span class="pl-kos">{</span> <span class="pl-k">return</span> <span class="pl-en">Ok</span><span class="pl-kos">(</span>res<span class="pl-kos">)</span> <span class="pl-kos">}</span><span class="pl-kos">;</span>
+    <span class="pl-k">match</span> map<span class="pl-kos">.</span><span class="pl-en">pin</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-en">get</span><span class="pl-kos">(</span><span class="pl-c1">&amp;</span>item_id<span class="pl-kos">)</span> <span class="pl-kos">{</span>
+        <span class="pl-v">Some</span><span class="pl-kos">(</span>node_state<span class="pl-kos">)</span> =&gt; res<span class="pl-kos">.</span><span class="pl-en">extend</span><span class="pl-kos">(</span>node_state<span class="pl-kos">.</span><span class="pl-c1">links</span><span class="pl-kos">.</span><span class="pl-en">iter</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-en">map</span><span class="pl-kos">(</span>|<span class="pl-kos">(</span>_<span class="pl-kos">,</span> i<span class="pl-kos">)</span>| <span class="pl-c1">*</span>i<span class="pl-kos">)</span><span class="pl-kos">)</span><span class="pl-kos">,</span>
+        <span class="pl-v">None</span> =&gt; <span class="pl-kos">{</span>
+            <span class="pl-c">// lazily add this entry</span>
+            <span class="pl-smi">self</span><span class="pl-kos">.</span><span class="pl-en">add_in_layers_below</span><span class="pl-kos">(</span>item_id<span class="pl-kos">,</span> level<span class="pl-kos">)</span><span class="pl-kos">;</span>
+        <span class="pl-kos">}</span>
+    <span class="pl-kos">}</span>
+
+    <span class="pl-en">Ok</span><span class="pl-kos">(</span>res<span class="pl-kos">)</span>
+<span class="pl-kos">}</span></pre></div>
+<p dir="auto">This strategy actually works well in practice ! <strong>By re-indexing &lt;&lt;1% of the vectors in the original graph, we're able to merge on-disk and in-memory indexes seamlessly</strong>. To the best of my knowledge, this is a novel technique that no other HNSW implementations utilize for handling incremental builds, and it is essential to the use case at Meilisearch, where batch insertions are heavily used.</p>
+<p dir="auto">There are tons of other cool sub-problems like those that we address in hannoy, but I'll save those for another post. The important part to retain here is that hannoy is "a DiskANN-inspired HNSW implementation with LMDB-backed storage".</p>
+<h3 id="benchmarking-hannoy-vs-arroy" dir="auto"><a href="#benchmarking-hannoy-vs-arroy">Benchmarking Hannoy vs Arroy</a></h3>
+<p dir="auto">I like making unsubstantiated claims about the performance of my system as much as the next guy, but there comes a point when it's time to share some hard numbers. That time is now!</p>
+<p dir="auto">To facilitate comparison between the old system and the new one, we'll utilize the trusty <a href="https://github.com/meilisearch/vector-store-relevancy-benchmark">vector-store-relevancy-benchmark</a> from Meilisearch, as featured in previous blog posts. The important metrics we'll be comparing are recall (1, 10, 50, 100), indexing time, retrieval latency, and disk usage for various datasets with differing embedding dimensions. To simplify the process, we'll run the benchmark on 1 million documents using cosine as the indexing/retrieval distance metric in full precision. We'll also run the benchmark using each database's preferred quantization format.</p>
+<div class="markdown-alert markdown-alert-note" dir="auto"><p class="markdown-alert-title" dir="auto"><svg aria-hidden="true" class="octicon octicon-info mr-2" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p><p dir="auto">When <a href="https://www.meilisearch.com/docs/reference/api/settings#embedders-object" rel="nofollow">quantization is enabled</a>, arroy by default uses the cosine distance over the [0,1]-valued vectors. In hannoy, we've noticed that the <a href="https://en.wikipedia.org/wiki/Hamming_distance" rel="nofollow">hamming distance</a> between binary strings (x^y) is vastly more performant in both speed and recall. Intuitively, the speed part makes sense as the distance computation reduces to <code class="notranslate">popcnt</code>'s !</p>
+</div>
+<p dir="auto">The results I'll be sharing are cherry-picked from the <a href="https://github.com/nnethercott/hannoy/blob/main/docs/benchmarks/arroy_hannoy.md">much more complete benchmarking summary in hannoy</a>.</p>
+<h4 id="" dir="auto"><a href="https://huggingface.co/datasets/Cohere/wikipedia-22-12-simple-embeddings" rel="nofollow">Embeddings with 768 Dimensions</a><a href="#"></a></h4>
+<p dir="auto">hannoy params:</p>
+<ul dir="auto">
+<li>full precision: <code class="notranslate">M=16</code>, <code class="notranslate">ef_construction=48</code></li>
+<li>quantized: <code class="notranslate">M=16</code>, <code class="notranslate">ef_construction=48</code></li>
+</ul>
+<markdown-accessiblity-table><table class="table table-striped" role="table">
+<thead>
+<tr>
+<th>Algo</th>
+<th>Build Time</th>
+<th>DB Size</th>
+<th>Recall@1</th>
+<th>Recall@10</th>
+<th>Recall@50</th>
+<th>Recall@100</th>
+<th>Search Latency</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>arroy</td>
+<td>2386.92 s</td>
+<td>16.19 GiB</td>
+<td><strong>0.96</strong></td>
+<td>0.83</td>
+<td>0.87</td>
+<td>0.90</td>
+<td>190.84 ms</td>
+</tr>
+<tr>
+<td>arroy (quantized)</td>
+<td><strong>87.96 s</strong></td>
+<td>940 MiB</td>
+<td>0.80</td>
+<td>0.40</td>
+<td>0.48</td>
+<td>0.43</td>
+<td>91.57 ms</td>
+</tr>
+<tr>
+<td>hannoy</td>
+<td>506.41 s</td>
+<td>4.03 GiB</td>
+<td>0.95</td>
+<td><strong>0.94</strong></td>
+<td><strong>0.94</strong></td>
+<td><strong>0.94</strong></td>
+<td><strong>29.89 ms</strong></td>
+</tr>
+<tr>
+<td>hannoy (quantized)</td>
+<td>418.03 s</td>
+<td><strong>433 MiB</strong></td>
+<td><strong>0.96</strong></td>
+<td>0.92</td>
+<td>0.93</td>
+<td>0.92</td>
+<td>32.90 ms</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h4 id="" dir="auto"><a href="https://huggingface.co/datasets/Qdrant/dbpedia-entities-openai3-text-embedding-3-large-1536-1M" rel="nofollow">Embeddings with 1536 Dimensions</a><a href="#"></a></h4>
+<p dir="auto">hannoy params:</p>
+<ul dir="auto">
+<li>full precision: <code class="notranslate">M=16</code>, <code class="notranslate">ef_construction=33</code></li>
+<li>quantized: <code class="notranslate">M=16</code> <code class="notranslate">ef_construction=64</code></li>
+</ul>
+<markdown-accessiblity-table><table class="table table-striped" role="table">
+<thead>
+<tr>
+<th>Algo</th>
+<th>Build Time</th>
+<th>DB Size</th>
+<th>Recall@1</th>
+<th>Recall@10</th>
+<th>Recall@50</th>
+<th>Recall@100</th>
+<th>Search Latency</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>arroy</td>
+<td>955.92 s</td>
+<td>14.45 GiB</td>
+<td><strong>1.00</strong></td>
+<td>0.77</td>
+<td>0.92</td>
+<td>0.95</td>
+<td>227.89 ms</td>
+</tr>
+<tr>
+<td>arroy (quantized)</td>
+<td>141.12 s</td>
+<td>1.86 GiB</td>
+<td><strong>1.00</strong></td>
+<td>0.52</td>
+<td>0.69</td>
+<td>0.67</td>
+<td>168.30 ms</td>
+</tr>
+<tr>
+<td>hannoy</td>
+<td>152.81 s</td>
+<td>7.87 GiB</td>
+<td>0.90</td>
+<td>0.91</td>
+<td><strong>0.95</strong></td>
+<td><strong>0.97</strong></td>
+<td>30.54 ms</td>
+</tr>
+<tr>
+<td>hannoy (quantized)</td>
+<td><strong>67.32 s</strong></td>
+<td><strong>481 MiB</strong></td>
+<td><strong>1.00</strong></td>
+<td><strong>0.94</strong></td>
+<td>0.94</td>
+<td>0.91</td>
+<td><strong>13.30 ms</strong></td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h4 id="" dir="auto"><a href="https://huggingface.co/datasets/Qdrant/dbpedia-entities-openai3-text-embedding-3-large-1536-1M" rel="nofollow">Embeddings with 3072 Dimensions</a><a href="#"></a></h4>
+<p dir="auto">hannoy params:</p>
+<ul dir="auto">
+<li>fulll precision: <code class="notranslate">M=16</code>, <code class="notranslate">ef_construction=33</code></li>
+<li>quantized: <code class="notranslate">M=16</code>, <code class="notranslate">ef_construction=64</code></li>
+</ul>
+<markdown-accessiblity-table><table class="table table-striped" role="table">
+<thead>
+<tr>
+<th>Algo</th>
+<th>Build Time</th>
+<th>DB Size</th>
+<th>Recall@1</th>
+<th>Recall@10</th>
+<th>Recall@50</th>
+<th>Recall@100</th>
+<th>Search Latency</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>arroy</td>
+<td>1695.77 s</td>
+<td>23.02 GiB</td>
+<td><strong>1.00</strong></td>
+<td>0.72</td>
+<td>0.90</td>
+<td>0.95</td>
+<td>444.07 ms</td>
+</tr>
+<tr>
+<td>arroy (quantized)</td>
+<td>363.45 s</td>
+<td>3.65 GiB</td>
+<td><strong>1.00</strong></td>
+<td>0.72</td>
+<td>0.79</td>
+<td>0.76</td>
+<td>778.33 ms</td>
+</tr>
+<tr>
+<td>hannoy</td>
+<td>253.80 s</td>
+<td>15.50 GiB</td>
+<td>0.87</td>
+<td>0.94</td>
+<td><strong>0.95</strong></td>
+<td><strong>0.96</strong></td>
+<td>45.17 ms</td>
+</tr>
+<tr>
+<td>hannoy (quantized)</td>
+<td><strong>76.56 s</strong></td>
+<td><strong>736 MiB</strong></td>
+<td><strong>1.00</strong></td>
+<td><strong>0.96</strong></td>
+<td>0.92</td>
+<td>0.88</td>
+<td><strong>13.69 ms</strong></td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">Note that the reported search latency numbers represent the cold-start times. In reality, search times will speed up as more of the database is loaded into the <a href="https://en.wikipedia.org/wiki/Page_cache" rel="nofollow">page cache</a>. From the flamegraph below, we can see that ~25% of our time is spent on <code class="notranslate">mdb_get</code> calls, so running a few warmup queries could significantly reduce retrieval times.</p>
+<a href="assets/images/2bfa58dae671c0dc.png" rel="noopener noreferrer" target="_blank"><img alt="Image" height="157" src="assets/images/2bfa58dae671c0dc.png" style="max-width: 100%; height: auto; max-height: 157px;" width="1147"></a>
+<p dir="auto">As you can see from these numbers, hannoy certainly improves upon <strong>all</strong> of the metrics we discussed - and by quite a large margin. In some cases, indexing times drop by nearly 10x, while the same amount improves search latencies.</p>
+<h4 id="benchmarking-hannoy-vs-third-party" dir="auto"><a href="#benchmarking-hannoy-vs-third-party">Benchmarking Hannoy vs Third Party</a></h4>
+<p dir="auto">Having a bit of free time on my hands, I thought I'd tackle writing the <a data-hovercard-type="pull_request" data-hovercard-url="/nnethercott/hannoy/pull/83/hovercard" href="https://github.com/nnethercott/hannoy/pull/83">Python bindings for hannoy</a> using <a href="https://pyo3.rs/v0.25.1/index.html" rel="nofollow">pyo3</a>. With these in place, it becomes much easier to integrate the project with the renowned <a href="https://ann-benchmarks.com/index.html" rel="nofollow">ANN Benchmarks leaderboard</a>.</p>
+<a href="assets/images/eb9d4c868476a2b8.png" rel="noopener noreferrer" target="_blank"><img alt="Image" height="559" src="assets/images/eb9d4c868476a2b8.png" style="max-width: 100%; height: auto; max-height: 559px;" width="810"></a>
+<p dir="auto">What's cool here is that even with the log(n) lookups from LMDB and potential page faults in our mmap, we're still beating in-memory annoy (arroy but in C) and competitive enough with Faiss' implementation. This graph indicates that we still have some work to do in terms of performance. Still, considering it was an initial implementation thrown together fairly quickly, it's certainly a good start. The most essential things for hannoy are ensuring that we keep the same API as arroy to facilitate integration in Meilisearch, and of course, that it improves on the metrics with respect to the previous system.</p>
+<h3 id="conclusion" dir="auto"><a href="#conclusion">Conclusion</a></h3>
+<p dir="auto">I covered a lot of ground in this blog post, but still haven't answered the essential question <em>"Why the HNSW and not DiskANN?"</em> - and to be honest, I still don't have a satisfactory answer.</p>
+<p dir="auto">On one hand, the HNSW seemed the easiest out of the two to implement, given our constraint of using LMDB as a storage backend (DiskANN has a lot of async IO going on to maximize throughput on SSD reads, which aren't as straightforward to implement using mmap). From another perspective, HNSW is the gateway to graph ANNs and seemed like a good first approach to try out, validating whether this was a valid alternative to Meilisearch's prevailing vector database. If convincing results could be obtained with relatively little effort, it was certainly worth trying out. That being said, DiskANN and FreshDiskANN certainly influenced many of my design choices throughout, and I'm sure the project will evolve to resemble them more closely.</p>
+<p dir="auto">I published this article everywhere on the internet, and if you want to comment, please take a look at <a href="https://lobste.rs/s/cjcmic/meilisearch_speeding_up_vector_search" rel="nofollow">Lobste.rs</a>, <a href="https://news.ycombinator.com/item?id=46193983" rel="nofollow">Hackernews</a>, <a href="https://www.reddit.com/r/rust/comments/1phghjc/meilisearch_speeding_up_vector_search_10x_with/" rel="nofollow">Reddit</a>, <a href="https://x.com/Kerollmops/status/1998061467799552342" rel="nofollow">Twitter</a>, <a href="https://bsky.app/profile/did:plc:7o7wempidhea35g3wiaxenoi/post/3m7ifyymvmk2a" rel="nofollow">Bsky</a> or even post a comment in here 👇</p></body></html>
+    </article>
+
+    <div class="vote-emojis">
+    <a class="btn btn-outline-secondary vote-emoji" href="https://github.com/Kerollmops/blog/issues/20#comment-composer-heading" role="button">🙂 ✚</a>
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    </div>
+
+    <div class="tiny-utterances"
+        data-repo-owner="Kerollmops"
+        data-repo-name="blog"
+        data-issue-number="20"
+        data-max-comments="10">
+        <a class="tu-button"
+            href="https://github.com/Kerollmops/blog/issues/20#comment-composer-heading">
+            0 comments, join the discussion
+        </a>
+    </div>
+
+
+      
+  <footer class="profil text-center">
+    <p class="long-text text-uppercase">About Nate Nethercott</p>
+    <p class="text-center">just a guy</p>
+    <hr class="mb-3"/>
+    <p class="text-center">Subscribe to <a href="/atom.xml">my RSS/Atom feed</a> for the latest updates and articles.</p>
+  </footer>
+
+    </div>
+  </body>
+</html>
