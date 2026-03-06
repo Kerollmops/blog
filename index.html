@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="auto">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script defer data-domain="blog.kerollmops.com" src="https://plausible.io/js/script.js"></script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦀</text></svg>">
+    <script type="application/javascript" src="/assets/script.js"></script>
+    <script defer type="application/javascript" src="/assets/tiny-utterances.js"></script>
+    <script type="application/javascript" src="/assets/matter.min.js"></script>
+    <script type="application/javascript" src="/assets/balls.js"></script>
+    <link href="assets/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/style.css" rel="stylesheet">
+    <link href="assets/tiny-utterances.css" rel="stylesheet">
+
+    <!-- Primary Meta Tags -->
+    <title>Clément Renault</title>
+    <meta name="title" content="Clément Renault" />
+    <meta name="description" content="A chill and fun blog about Rust stuff and the journey of building my company: Meilisearch" />
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://blog.kerollmops.com/" />
+    <meta property="og:title" content="Clément Renault" />
+    <meta property="og:description" content="A chill and fun blog about Rust stuff and the journey of building my company: Meilisearch" />
+    <meta property="og:image" content="https://blog.kerollmops.com/preview/homepage.png" />
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="Clément Renault" />
+    <meta property="twitter:title" content="Clément Renault" />
+    <meta property="twitter:description" content="A chill and fun blog about Rust stuff and the journey of building my company: Meilisearch" />
+    <meta property="twitter:image" content="https://blog.kerollmops.com/preview/homepage.png" />
+
+    
+  <meta name="description" content="The blog of Clément Renault with a lot of interesting articles.">
+  <style>
+  </style>
+
+  </head>
+  <body>
+    <canvas id="ballsCanvas"></canvas>
+    <div class="container">
+      
+<header class="profil">
+    <a href="/">
+        <div class="text-center">
+            <img src="https://avatars.githubusercontent.com/u/3610253?v=4&s=100" class="profil-picture" alt="Profil picture of Clément Renault">
+            <p class="long-text text-uppercase">Clément Renault</p>
+        </div>
+    </a>
+    <p class="text-center">I am the co-founder and CTO of <a href="https://github.com/meilisearch">@meilisearch</a>. I learned coding at the Paris <a href="https://github.com/42school">@42school</a>. I live in Paris and love video games.</p>
+  <hr/>
+</header>
+
+
+      
+<ol class="custom">
+    
+    <li>
+        <small class="text-body-secondary">
+            <i>December 08, 2025</i> — 0 comments
+            
+             — written by <a href="https://github.com/nnethercott">nnethercott</a>
+            
+        </small>
+        <a class="article-link" href="from-trees-to-graphs-speeding-up-vector-search-10x-with-hannoy">
+            <h4 class="card-title">From trees to graphs: speeding up vector search 10x with Hannoy</h4>
+            <p class="card-text"> This is a walkthrough of a new LMDB-based HNSW Rust vector store with drastically better performances than the previous random-projection-based one. This is a disk-based HNSW highly vector store inspired by the DiskANN technology and is now used by default in Meilisearch. </p>
+        </a>
+    </li>
+    
+    <li>
+        <small class="text-body-secondary">
+            <i>January 20, 2025</i> — 2 comments
+            
+        </small>
+        <a class="article-link" href="meilisearch-vs-qdrant-tradeoffs-strengths-and-weaknesses">
+            <h4 class="card-title">Meilisearch vs Qdrant: Tradeoffs, Strengths and Weaknesses</h4>
+            <p class="card-text"> This is an analysis of the weaknesses of Qdrant and its RocksDB-based HNSW compared to Meilisearch. Meilisearch shows impressive results on highly filtered datasets when Qdrant struggles with relevancy and search time. </p>
+        </a>
+    </li>
+    
+    <li>
+        <small class="text-body-secondary">
+            <i>November 29, 2024</i> — 0 comments
+            
+             — written by <a href="https://github.com/irevoire">irevoire</a>
+            
+        </small>
+        <a class="article-link" href="meilisearch-indexes-embeddings-7x-faster-with-binary-quantization">
+            <h4 class="card-title">Meilisearch Indexes Embeddings 7x Faster with Binary Quantization</h4>
+            <p class="card-text"> Let's explore the use of binary quantization as a powerful technique in search technology. By implementing binary quantization with the vector store, Arroy, significant reductions in disk space usage and indexing time for large embeddings have been achieved while maintaining search relevance and efficiency. </p>
+        </a>
+    </li>
+    
+    <li>
+        <small class="text-body-secondary">
+            <i>August 20, 2024</i> — 5 comments
+            
+        </small>
+        <a class="article-link" href="meilisearch-is-too-slow">
+            <h4 class="card-title">Meilisearch is too slow</h4>
+            <p class="card-text"> In this blog post, we explore the enhancements needed for Meilisearch's document indexer. We'll discuss the current indexing engine, its drawbacks, and new techniques to optimize performance. With insights on parallel processing, memory management, and efficient data handling, we'll draft a robust new indexer to better handle large datasets and frequent updates. Join us for a deep dive into making Meilisearch's indexing faster, more efficient, and scalable. </p>
+        </a>
+    </li>
+    
+    <li>
+        <small class="text-body-secondary">
+            <i>March 25, 2024</i> — 0 comments
+            
+             — written by <a href="https://github.com/irevoire">irevoire</a>
+            
+        </small>
+        <a class="article-link" href="how-meilisearch-updates-a-millions-vector-embeddings-database-in-under-a-minute">
+            <h4 class="card-title">How Meilisearch Updates a Millions Vector Embeddings Database in Under a Minute</h4>
+            <p class="card-text"> In this blog post, we'll explore how we implemented incremental indexing in Arroy, enabling efficient updates to our vector store without rebuilding the entire tree. This is crucial for Meilisearch, where content frequently changes. We discuss the theory, the challenges faced, and various approaches to optimize ID generation. Our method delivers a significant speedup, making our search system scalable and responsive, even for large datasets. We've achieved remarkable performance improvements, benefiting users with dynamic and extensive data. </p>
+        </a>
+    </li>
+    
+    <li>
+        <small class="text-body-secondary">
+            <i>December 23, 2023</i> — 0 comments
+            
+        </small>
+        <a class="article-link" href="meilisearch-expands-search-power-with-arroy-s-filtered-disk-ann">
+            <h4 class="card-title">Meilisearch Expands Search Power with Arroy's Filtered Disk ANN</h4>
+            <p class="card-text"> Meilisearch is enhancing its search capabilities by integrating Arroy, which supports efficient vector storage and filtering. Arroy outperforms previous solutions like HNSW, especially for large datasets. With the use of RoaringBitmap for filtering, Arroy reduces memory usage and speeds up searches. New features include support for multiple indexes, enabling efficient handling of various embeddings. This teamwork-driven project highlights flexibility and scalability for diverse search needs. </p>
+        </a>
+    </li>
+    
+    <li>
+        <small class="text-body-secondary">
+            <i>December 16, 2023</i> — 5 comments
+            
+        </small>
+        <a class="article-link" href="multithreading-and-memory-mapping-refining-ann-performance-with-arroy">
+            <h4 class="card-title">Multithreading and Memory-Mapping: Refining ANN Performance with Arroy</h4>
+            <p class="card-text"> Dive into my journey of porting Spotify's Annoy library to Rust using LMDB. Learn how I tackled memory-mapped file challenges, optimized tree node generation, and achieved significant performance improvements for indexing large vector datasets. Discover the power of the Share Nothing principle and prepare for future insights on incremental indexing and filtering. </p>
+        </a>
+    </li>
+    
+    <li>
+        <small class="text-body-secondary">
+            <i>December 08, 2023</i> — 0 comments
+            
+        </small>
+        <a class="article-link" href="spotify-inspired-elevating-meilisearch-with-hybrid-search-and-rust">
+            <h4 class="card-title">Spotify-Inspired: Elevating Meilisearch with Hybrid Search and Rust</h4>
+            <p class="card-text"> At Meilisearch, we're blending keyword and semantic search to enhance query results. Our project, Arroy, stores embeddings on disk, optimizing search among high-dimensional vectors with Spotify's Annoy as inspiration. By porting to Rust and using LMDB, we improve efficiency and manage storage effectively. We optimize vector handling with SIMD and plan to tackle multithreaded tree building and incremental indexing in future updates. Join us on this tech journey! </p>
+        </a>
+    </li>
+    
+    <li>
+        <small class="text-body-secondary">
+            <i>August 09, 2023</i> — 0 comments
+            
+        </small>
+        <a class="article-link" href="using-rust-and-the-github-ci-for-my-blog">
+            <h4 class="card-title">Using Rust and the GitHub CI for my blog</h4>
+            <p class="card-text"> In my first blog post, I share how I built my blog on GitHub Pages using GitHub CI. Inspired by Utterances, I use GitHub issues to display articles and GitHub API for ease of use. Leveraging Rust, octocrab, Starry Night, and Askama, I generate static pages and ensure code syntax highlighting. Bootstrap and PurgeCSS helped achieve a sleek, high-performing design. My blog is live, open-source, and ready for you to explore on GitHub! </p>
+        </a>
+    </li>
+    
+</ol>
+
+
+      
+<footer>
+    <hr class="mb-3"/>
+    <p class="text-center">Subscribe to <a href="/atom.xml">my RSS/Atom feed</a> for the latest updates and articles.</p>
+</footer>
+
+    </div>
+  </body>
+</html>
