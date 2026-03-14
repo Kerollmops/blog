@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="auto">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script defer data-domain="blog.kerollmops.com" src="https://plausible.io/js/script.js"></script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦀</text></svg>">
+    <script type="application/javascript" src="/assets/script.js"></script>
+    <script defer type="application/javascript" src="/assets/tiny-utterances.js"></script>
+    <script type="application/javascript" src="/assets/matter.min.js"></script>
+    <script type="application/javascript" src="/assets/balls.js"></script>
+    <link href="assets/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/style.css" rel="stylesheet">
+    <link href="assets/tiny-utterances.css" rel="stylesheet">
+
+    <!-- Primary Meta Tags -->
+    <title>Patching LMDB: How We Made Meilisearch’s Vector Store 333% Faster</title>
+    <meta name="title" content="Patching LMDB: How We Made Meilisearch’s Vector Store 333% Faster" />
+    <meta name="description" content=" How Meilisearch drastically sped up the indexation of embeddings in its vector store by introducing a new LMDB API. This new API allows Meilisearch to scale linearly with the number of available indexing CPUs, removing the need to fully scan the database and polluting the cache with plenty of potentially useless disk pages. " />
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://blog.kerollmops.com/patching-lmdb-how-we-made-meilisearch-s-vector-store-333-faster" />
+    <meta property="og:title" content="Patching LMDB: How We Made Meilisearch’s Vector Store 333% Faster" />
+    <meta property="og:description" content=" How Meilisearch drastically sped up the indexation of embeddings in its vector store by introducing a new LMDB API. This new API allows Meilisearch to scale linearly with the number of available indexing CPUs, removing the need to fully scan the database and polluting the cache with plenty of potentially useless disk pages. " />
+    <meta property="og:image" content="https://blog.kerollmops.com/preview/patching-lmdb-how-we-made-meilisearch-s-vector-store-333-faster.png" />
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="Patching LMDB: How We Made Meilisearch’s Vector Store 333% Faster" />
+    <meta property="twitter:title" content="Patching LMDB: How We Made Meilisearch’s Vector Store 333% Faster" />
+    <meta property="twitter:description" content=" How Meilisearch drastically sped up the indexation of embeddings in its vector store by introducing a new LMDB API. This new API allows Meilisearch to scale linearly with the number of available indexing CPUs, removing the need to fully scan the database and polluting the cache with plenty of potentially useless disk pages. " />
+    <meta property="twitter:image" content="https://blog.kerollmops.com/preview/patching-lmdb-how-we-made-meilisearch-s-vector-store-333-faster.png" />
+
+    
+  <meta name="description" content="Article by Clément Renault titled: Patching LMDB: How We Made Meilisearch’s Vector Store 333% Faster.">
+  <link rel="stylesheet" href="/assets/starry-night.css">
+  <style></style>
+
+  </head>
+  <body>
+    <canvas id="ballsCanvas"></canvas>
+    <div class="container">
+      
+<header class="profil">
+  <a href="/">
+      <div class="text-center">
+          <img src="https://avatars.githubusercontent.com/u/3610253?v=4&s=100" class="profil-picture" alt="Profil picture of Clément Renault">
+          <p class="long-text text-uppercase">Clément Renault</p>
+      </div>
+  </a>
+</header>
+
+
+      
+    <p class="text-center">
+        <small class="text-body-secondary"><i>March 13, 2026</i> — <a href="https://github.com/Kerollmops/blog/issues/23#comment-composer-heading">1 comments</a></small>
+    </p>
+    <article>
+        <h1 class="mb-4 text-center">Patching LMDB: How We Made Meilisearch’s Vector Store 333% Faster</h1>
+
+        <html><head></head><body><div class="markdown-alert markdown-alert-note" dir="auto"><p class="markdown-alert-title" dir="auto"><svg aria-hidden="true" class="octicon octicon-info mr-2" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p><p dir="auto">This is one blog post in a series:</p>
+<ul dir="auto">
+<li>Patching LMDB: How We Made Meilisearch’s Vector Store 333% Faster</li>
+<li><a href="https://blog.kerollmops.com/from-trees-to-graphs-speeding-up-vector-search-10x-with-hannoy" rel="nofollow">From trees to graphs: speeding up vector search 10x with Hannoy</a>.</li>
+</ul>
+</div>
+<p dir="auto">I propose starting this article with a brief introduction to Meilisearch. <a href="https://github.com/meilisearch/meilisearch">Meilisearch is a Rust-based search engine</a> that is (very) easy to integrate into your workflow. It features an optional hybrid search that mixes keyword-only results with semantic search. Meilisearch uses LMDB, a lightning-fast memory-mapped key-value store for the indexes under the hood. To perform approximate nearest neighbors (ANNs) search, we developed a homemade LMDB-based HNSW, <a href="https://github.com/nnethercott/hannoy">named <em>hannoy</em></a>.</p>
+<p dir="auto">If you are wondering what a Hierarchical Navigable Small World (HNSW) is, I recommend reading <a href="https://en.wikipedia.org/wiki/Hierarchical_navigable_small_world" rel="nofollow">this Wikipedia article</a>. If you feel lazy, it is basically a multi-layer graph with increasing connections between nodes that improves the time to find the nearest neighbors of a target embedding. An embedding, also commonly defined as a vector, is a set of floating-point numbers; the length of it is called dimensions, usually between 512 and 3072, that represent the meaning of a text, an image, a sound... Embeddings that are mathematically closer are considered semantically closer to each other by the embedder that generated them.</p>
+<p dir="auto">This article will not dive into the gears of an HNSW but rather into those of LMDB and our vector store. We will talk about a missing feature of our key-value store that we eventually implemented to unlock an even more powerful search engine, enabling indexation to scale linearly with the number of CPUs and to have lower time complexity.</p>
+<h3 id="reminder-of-the-facts" dir="auto"><a href="#reminder-of-the-facts">Reminder of the Facts</a></h3>
+<p dir="auto">It's been some time since I talked about an unsafe but safe approach to read the entries of an LMDB write transaction, one that is not committed yet and whose content is not visible to a newly created transaction until it is committed. I'll write it again here, but you can read <a href="https://blog.kerollmops.com/multithreading-and-memory-mapping-refining-ann-performance-with-arroy#the-challenges-we-encountered-when-porting-it-to-lmdb" rel="nofollow">the more detailed article describing this technique</a>.</p>
+<p dir="auto">The trick is to basically do a <strong>full scan</strong> of all the entries we will need to access to insert the newly arrived embeddings and collect the pointers and associated lengths in a very basic Rust HashMap. <a href="https://bugs.openldap.org/show_bug.cgi?id=10138#c9" rel="nofollow">We confirmed the validity and safety of this approach with Howard Chu</a>, author and maintainer of LMDB. This way, we can wrap this HashMap in a type and unsafe-ly implement <code class="notranslate">Sync</code> on it so we can use multiple threads to access those memory-mapped pointers (embeddings, HNSW graph nodes).</p>
+<p dir="auto">For people who prefer reading code to long paragraphs like me, here is the data structure I am talking about. You can clearly see the full scan, that's the only for loop in this code sample... Yup, that's where the problem lies, and we'll discuss the impact of this loop soon.</p>
+<div class="highlight highlight-source-rust notranslate position-relative overflow-auto" data-snippet-clipboard-copy-content="pub struct ImmutableItems<'t, D> {
+    item_ids: RoaringBitmap,
+    constant_length: Option<usize>,
+    offsets: Vec<*const u8>,
+    _marker: marker::PhantomData<(&amp;'t (), D)>,
+}
+
+impl<'t, D: Distance> ImmutableItems<'t, D> {
+    pub fn new(rtxn: &amp;'t RoTxn, database: Database<D>, index: u16) -> heed::Result<Self> {
+        let mut item_ids = RoaringBitmap::new();
+        let mut constant_length = None;
+        let mut offsets = Vec::new();
+
+        for result in database.items()? {
+            let (item_id, bytes) = result?;
+            assert_eq!(*constant_length.get_or_insert(bytes.len()), bytes.len());
+            item_ids.push(item_id);
+            offsets.push(bytes.as_ptr());
+        }
+
+        Ok(ImmutableItems { item_ids, constant_length, offsets, _marker: marker::PhantomData })
+    }
+
+    pub fn get(&amp;self, item_id: ItemId) -> heed::Result<Option<Leaf<'t, D>>> {
+        let len = match self.constant_length {
+            Some(len) => len,
+            None => return Ok(None),
+        };
+        let ptr = match self.item_ids.rank(item_id).checked_sub(1).and_then(|offset| self.offsets.get(offset)) {
+            Some(ptr) => *ptr,
+            None => return Ok(None),
+        };
+        let bytes = unsafe { slice::from_raw_parts(ptr, len) };
+        ItemCodec::bytes_decode(bytes).map(Some)
+    }
+}
+
+unsafe impl<D> Sync for ImmutableItems<'_, D> {}" dir="auto"><pre class="notranslate"><span class="pl-k">pub</span> <span class="pl-k">struct</span> <span class="pl-smi">ImmutableItems</span><span class="pl-kos">&lt;</span><span class="pl-c1">'</span><span class="pl-ent">t</span><span class="pl-kos">,</span> <span class="pl-smi">D</span><span class="pl-kos">&gt;</span> <span class="pl-kos">{</span>
+    <span class="pl-c1">item_ids</span><span class="pl-kos">:</span> <span class="pl-smi">RoaringBitmap</span><span class="pl-kos">,</span>
+    <span class="pl-c1">constant_length</span><span class="pl-kos">:</span> <span class="pl-smi">Option</span><span class="pl-kos">&lt;</span><span class="pl-smi">usize</span><span class="pl-kos">&gt;</span><span class="pl-kos">,</span>
+    <span class="pl-c1">offsets</span><span class="pl-kos">:</span> <span class="pl-smi">Vec</span><span class="pl-kos">&lt;</span><span class="pl-c1">*</span><span class="pl-k">const</span> <span class="pl-smi">u8</span><span class="pl-kos">&gt;</span><span class="pl-kos">,</span>
+    <span class="pl-c1">_marker</span><span class="pl-kos">:</span> marker<span class="pl-kos">::</span><span class="pl-smi">PhantomData</span><span class="pl-kos">&lt;</span><span class="pl-kos">(</span><span class="pl-c1">&amp;</span><span class="pl-c1">'</span><span class="pl-ent">t</span> <span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">,</span> <span class="pl-smi">D</span><span class="pl-kos">)</span><span class="pl-kos">&gt;</span><span class="pl-kos">,</span>
+<span class="pl-kos">}</span>
+
+<span class="pl-k">impl</span><span class="pl-kos">&lt;</span><span class="pl-c1">'</span><span class="pl-ent">t</span><span class="pl-kos">,</span> <span class="pl-smi">D</span><span class="pl-kos">:</span> <span class="pl-smi">Distance</span><span class="pl-kos">&gt;</span> <span class="pl-smi">ImmutableItems</span><span class="pl-kos">&lt;</span><span class="pl-c1">'</span><span class="pl-ent">t</span><span class="pl-kos">,</span> <span class="pl-smi">D</span><span class="pl-kos">&gt;</span> <span class="pl-kos">{</span>
+    <span class="pl-k">pub</span> <span class="pl-k">fn</span> <span class="pl-en">new</span><span class="pl-kos">(</span><span class="pl-s1">rtxn</span><span class="pl-kos">:</span> <span class="pl-c1">&amp;</span><span class="pl-c1">'</span><span class="pl-ent">t</span> <span class="pl-smi">RoTxn</span><span class="pl-kos">,</span> <span class="pl-s1">database</span><span class="pl-kos">:</span> <span class="pl-smi">Database</span><span class="pl-kos">&lt;</span><span class="pl-smi">D</span><span class="pl-kos">&gt;</span><span class="pl-kos">,</span> <span class="pl-s1">index</span><span class="pl-kos">:</span> <span class="pl-smi">u16</span><span class="pl-kos">)</span> -&gt; heed<span class="pl-kos">::</span><span class="pl-smi">Result</span><span class="pl-kos">&lt;</span><span class="pl-smi">Self</span><span class="pl-kos">&gt;</span> <span class="pl-kos">{</span>
+        <span class="pl-k">let</span> <span class="pl-k">mut</span> item_ids = <span class="pl-smi">RoaringBitmap</span><span class="pl-kos">::</span><span class="pl-en">new</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+        <span class="pl-k">let</span> <span class="pl-k">mut</span> constant_length = <span class="pl-v">None</span><span class="pl-kos">;</span>
+        <span class="pl-k">let</span> <span class="pl-k">mut</span> offsets = <span class="pl-smi">Vec</span><span class="pl-kos">::</span><span class="pl-en">new</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+
+        <span class="pl-k">for</span> result <span class="pl-k">in</span> database<span class="pl-kos">.</span><span class="pl-en">items</span><span class="pl-kos">(</span><span class="pl-kos">)</span>? <span class="pl-kos">{</span>
+            <span class="pl-k">let</span> <span class="pl-kos">(</span>item_id<span class="pl-kos">,</span> bytes<span class="pl-kos">)</span> = result?<span class="pl-kos">;</span>
+            <span class="pl-en">assert_eq</span><span class="pl-en">!</span><span class="pl-kos">(</span><span class="pl-c1">*</span>constant_length<span class="pl-kos">.</span>get_or_insert<span class="pl-kos">(</span>bytes<span class="pl-kos">.</span>len<span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">)</span><span class="pl-kos">,</span> bytes<span class="pl-kos">.</span>len<span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+            item_ids<span class="pl-kos">.</span><span class="pl-en">push</span><span class="pl-kos">(</span>item_id<span class="pl-kos">)</span><span class="pl-kos">;</span>
+            offsets<span class="pl-kos">.</span><span class="pl-en">push</span><span class="pl-kos">(</span>bytes<span class="pl-kos">.</span><span class="pl-en">as_ptr</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+        <span class="pl-kos">}</span>
+
+        <span class="pl-en">Ok</span><span class="pl-kos">(</span><span class="pl-smi">ImmutableItems</span> <span class="pl-kos">{</span> item_ids<span class="pl-kos">,</span> constant_length<span class="pl-kos">,</span> offsets<span class="pl-kos">,</span> <span class="pl-c1">_marker</span><span class="pl-kos">:</span> marker<span class="pl-kos">::</span><span class="pl-v">PhantomData</span> <span class="pl-kos">}</span><span class="pl-kos">)</span>
+    <span class="pl-kos">}</span>
+
+    <span class="pl-k">pub</span> <span class="pl-k">fn</span> <span class="pl-en">get</span><span class="pl-kos">(</span><span class="pl-c1">&amp;</span><span class="pl-smi">self</span><span class="pl-kos">,</span> <span class="pl-s1">item_id</span><span class="pl-kos">:</span> <span class="pl-smi">ItemId</span><span class="pl-kos">)</span> -&gt; heed<span class="pl-kos">::</span><span class="pl-smi">Result</span><span class="pl-kos">&lt;</span><span class="pl-smi">Option</span><span class="pl-kos">&lt;</span><span class="pl-smi">Leaf</span><span class="pl-kos">&lt;</span><span class="pl-c1">'</span><span class="pl-ent">t</span><span class="pl-kos">,</span> <span class="pl-smi">D</span><span class="pl-kos">&gt;</span><span class="pl-kos">&gt;</span><span class="pl-kos">&gt;</span> <span class="pl-kos">{</span>
+        <span class="pl-k">let</span> len = <span class="pl-k">match</span> <span class="pl-smi">self</span><span class="pl-kos">.</span><span class="pl-c1">constant_length</span> <span class="pl-kos">{</span>
+            <span class="pl-v">Some</span><span class="pl-kos">(</span>len<span class="pl-kos">)</span> =&gt; len<span class="pl-kos">,</span>
+            <span class="pl-v">None</span> =&gt; <span class="pl-k">return</span> <span class="pl-en">Ok</span><span class="pl-kos">(</span><span class="pl-v">None</span><span class="pl-kos">)</span><span class="pl-kos">,</span>
+        <span class="pl-kos">}</span><span class="pl-kos">;</span>
+        <span class="pl-k">let</span> ptr = <span class="pl-k">match</span> <span class="pl-smi">self</span><span class="pl-kos">.</span><span class="pl-c1">item_ids</span><span class="pl-kos">.</span><span class="pl-en">rank</span><span class="pl-kos">(</span>item_id<span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-en">checked_sub</span><span class="pl-kos">(</span><span class="pl-c1">1</span><span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-en">and_then</span><span class="pl-kos">(</span>|offset| <span class="pl-smi">self</span><span class="pl-kos">.</span><span class="pl-c1">offsets</span><span class="pl-kos">.</span><span class="pl-en">get</span><span class="pl-kos">(</span>offset<span class="pl-kos">)</span><span class="pl-kos">)</span> <span class="pl-kos">{</span>
+            <span class="pl-v">Some</span><span class="pl-kos">(</span>ptr<span class="pl-kos">)</span> =&gt; <span class="pl-c1">*</span>ptr<span class="pl-kos">,</span>
+            <span class="pl-v">None</span> =&gt; <span class="pl-k">return</span> <span class="pl-en">Ok</span><span class="pl-kos">(</span><span class="pl-v">None</span><span class="pl-kos">)</span><span class="pl-kos">,</span>
+        <span class="pl-kos">}</span><span class="pl-kos">;</span>
+        <span class="pl-k">let</span> bytes = <span class="pl-k">unsafe</span> <span class="pl-kos">{</span> slice<span class="pl-kos">::</span><span class="pl-en">from_raw_parts</span><span class="pl-kos">(</span>ptr<span class="pl-kos">,</span> len<span class="pl-kos">)</span> <span class="pl-kos">}</span><span class="pl-kos">;</span>
+        <span class="pl-smi">ItemCodec</span><span class="pl-kos">::</span><span class="pl-en">bytes_decode</span><span class="pl-kos">(</span>bytes<span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-en">map</span><span class="pl-kos">(</span><span class="pl-v">Some</span><span class="pl-kos">)</span>
+    <span class="pl-kos">}</span>
+<span class="pl-kos">}</span>
+
+<span class="pl-k">unsafe</span> <span class="pl-k">impl</span><span class="pl-kos">&lt;</span><span class="pl-smi">D</span><span class="pl-kos">&gt;</span> <span class="pl-smi">Sync</span> <span class="pl-k">for</span> <span class="pl-smi">ImmutableItems</span><span class="pl-kos">&lt;</span><span class="pl-c1">'</span><span class="pl-ent">_</span><span class="pl-kos">,</span> <span class="pl-smi">D</span><span class="pl-kos">&gt;</span> <span class="pl-kos">{</span><span class="pl-kos">}</span></pre></div>
+<p dir="auto">Here is an extract of what happens in Hannoy for a customer that has nearly 19M (1024 dimensions) binary-quantized embeddings in its vector store and is inserting 7000 embeddings. As you may have noticed, a lot of time is spent <em>retrieving the item IDs</em>, <em>fetching item and link pointers</em>, and finally <em>writing the items</em> to disk.</p>
+<div class="highlight highlight-source-js notranslate position-relative overflow-auto" data-snippet-clipboard-copy-content="&quot;progressTrace&quot;: {
+    // [..]
+    &quot;processing tasks > indexing > writing embeddings to database > retrieving the items ids&quot;: &quot;559.56s&quot;,
+    &quot;processing tasks > indexing > writing embeddings to database > retrieve the updated items&quot;: &quot;3.31ms&quot;,
+    &quot;processing tasks > indexing > writing embeddings to database > fetch item pointers&quot;: &quot;5.54s&quot;,
+    &quot;processing tasks > indexing > writing embeddings to database > fetch links pointers&quot;: &quot;134.15s&quot;,
+    &quot;processing tasks > indexing > writing embeddings to database > resolve graph entry points&quot;: &quot;228.10µs&quot;,
+    &quot;processing tasks > indexing > writing embeddings to database > building the graph > inserting items&quot;: &quot;57.39ms&quot;,
+    &quot;processing tasks > indexing > writing embeddings to database > building the graph&quot;: &quot;57.43ms&quot;,
+    &quot;processing tasks > indexing > writing embeddings to database > patch old new deleted links&quot;: &quot;21.40s&quot;,
+    &quot;processing tasks > indexing > writing embeddings to database > writing the items&quot;: &quot;413.43s&quot;,
+    &quot;processing tasks > indexing > writing embeddings to database > deleting the links&quot;: &quot;2.04s&quot;,
+    &quot;processing tasks > indexing > writing embeddings to database > write the metadata&quot;: &quot;4.10s&quot;,
+    &quot;processing tasks > indexing > writing embeddings to database&quot;: &quot;1140.28s&quot;,
+    // [..]
+    &quot;processing tasks > indexing > finalizing > committing&quot;: &quot;16.23s&quot;,
+    &quot;processing tasks > indexing > finalizing > computing stats&quot;: &quot;22.37ms&quot;,
+    &quot;processing tasks > indexing > finalizing&quot;: &quot;16.62s&quot;,
+    &quot;processing tasks > indexing&quot;: &quot;2750.89s&quot;,
+    &quot;processing tasks&quot;: &quot;2751.21s&quot;
+  },
+  &quot;writeChannelCongestion&quot;: {
+    &quot;attempts&quot;: 48317068,
+    &quot;blocking_attempts&quot;: 48126087,
+    &quot;blocking_ratio&quot;: 0.9960473775863647
+  },
+  &quot;internalDatabaseSizes&quot;: {
+    // [..]
+    &quot;vectorStore&quot;: &quot;8.65 GiB (+132 KiB)&quot;,
+    &quot;documents&quot;: &quot;60.8 GiB (+1.05 MiB)&quot;
+  }
+}" dir="auto"><pre class="notranslate"><span class="pl-s">"progressTrace"</span>: <span class="pl-kos">{</span>
+    <span class="pl-c">// [..]</span>
+    <span class="pl-s">"processing tasks &gt; indexing &gt; writing embeddings to database &gt; retrieving the items ids"</span>: <span class="pl-s">"559.56s"</span><span class="pl-kos">,</span>
+    <span class="pl-s">"processing tasks &gt; indexing &gt; writing embeddings to database &gt; retrieve the updated items"</span>: <span class="pl-s">"3.31ms"</span><span class="pl-kos">,</span>
+    <span class="pl-s">"processing tasks &gt; indexing &gt; writing embeddings to database &gt; fetch item pointers"</span>: <span class="pl-s">"5.54s"</span><span class="pl-kos">,</span>
+    <span class="pl-s">"processing tasks &gt; indexing &gt; writing embeddings to database &gt; fetch links pointers"</span>: <span class="pl-s">"134.15s"</span><span class="pl-kos">,</span>
+    <span class="pl-s">"processing tasks &gt; indexing &gt; writing embeddings to database &gt; resolve graph entry points"</span>: <span class="pl-s">"228.10µs"</span><span class="pl-kos">,</span>
+    <span class="pl-s">"processing tasks &gt; indexing &gt; writing embeddings to database &gt; building the graph &gt; inserting items"</span>: <span class="pl-s">"57.39ms"</span><span class="pl-kos">,</span>
+    <span class="pl-s">"processing tasks &gt; indexing &gt; writing embeddings to database &gt; building the graph"</span>: <span class="pl-s">"57.43ms"</span><span class="pl-kos">,</span>
+    <span class="pl-s">"processing tasks &gt; indexing &gt; writing embeddings to database &gt; patch old new deleted links"</span>: <span class="pl-s">"21.40s"</span><span class="pl-kos">,</span>
+    <span class="pl-s">"processing tasks &gt; indexing &gt; writing embeddings to database &gt; writing the items"</span>: <span class="pl-s">"413.43s"</span><span class="pl-kos">,</span>
+    <span class="pl-s">"processing tasks &gt; indexing &gt; writing embeddings to database &gt; deleting the links"</span>: <span class="pl-s">"2.04s"</span><span class="pl-kos">,</span>
+    <span class="pl-s">"processing tasks &gt; indexing &gt; writing embeddings to database &gt; write the metadata"</span>: <span class="pl-s">"4.10s"</span><span class="pl-kos">,</span>
+    <span class="pl-s">"processing tasks &gt; indexing &gt; writing embeddings to database"</span>: <span class="pl-s">"1140.28s"</span><span class="pl-kos">,</span>
+    <span class="pl-c">// [..]</span>
+    <span class="pl-s">"processing tasks &gt; indexing &gt; finalizing &gt; committing"</span>: <span class="pl-s">"16.23s"</span><span class="pl-kos">,</span>
+    <span class="pl-s">"processing tasks &gt; indexing &gt; finalizing &gt; computing stats"</span>: <span class="pl-s">"22.37ms"</span><span class="pl-kos">,</span>
+    <span class="pl-s">"processing tasks &gt; indexing &gt; finalizing"</span>: <span class="pl-s">"16.62s"</span><span class="pl-kos">,</span>
+    <span class="pl-s">"processing tasks &gt; indexing"</span>: <span class="pl-s">"2750.89s"</span><span class="pl-kos">,</span>
+    <span class="pl-s">"processing tasks"</span>: <span class="pl-s">"2751.21s"</span>
+  <span class="pl-kos">}</span><span class="pl-kos">,</span>
+  <span class="pl-s">"writeChannelCongestion"</span>: <span class="pl-kos">{</span>
+    <span class="pl-s">"attempts"</span>: <span class="pl-c1">48317068</span><span class="pl-kos">,</span>
+    <span class="pl-s">"blocking_attempts"</span>: <span class="pl-c1">48126087</span><span class="pl-kos">,</span>
+    <span class="pl-s">"blocking_ratio"</span>: <span class="pl-c1">0.9960473775863647</span>
+  <span class="pl-kos">}</span><span class="pl-kos">,</span>
+  <span class="pl-s">"internalDatabaseSizes"</span>: <span class="pl-kos">{</span>
+    <span class="pl-c">// [..]</span>
+    <span class="pl-s">"vectorStore"</span>: <span class="pl-s">"8.65 GiB (+132 KiB)"</span><span class="pl-kos">,</span>
+    <span class="pl-s">"documents"</span>: <span class="pl-s">"60.8 GiB (+1.05 MiB)"</span>
+  <span class="pl-kos">}</span>
+<span class="pl-kos">}</span></pre></div>
+<h3 id="stop-computing-useless-stat" dir="auto"><a href="#stop-computing-useless-stat">Stop Computing Useless Stat</a></h3>
+<p dir="auto">The part where we retrieve the item IDs corresponds to when we fetch the internal IDs of newly inserted or removed embeddings, and this part was... computing the mean degree to help us debug the vector store back then... So, I <a href="https://github.com/nnethercott/hannoy/pull/124/changes/c6ce46b719a1f92faf9db0c3da392129aaaf1c9f">recently removed this</a>, and as you can see, it was performing full scans of the vector store, which is an operation to avoid, especially as the total number of embeddings grows over time. Removing this part reduces the time from 559s to about 2-3s and reduces it to <em>O(n)</em>, where <em>n</em> is the number of newly inserted or removed embeddings.</p>
+<p dir="auto">Actually, computing the mean degree stat was in hannoy super early as a sanity check since we were doing concurrent insertions into the graph and we weren't sure each point would be connected enough. But now that we have plenty of tests in our CI we are much more confident the graph is well generated.</p>
+<h3 id="full-scans-are-harmful" dir="auto"><a href="#full-scans-are-harmful">Full Scans are Harmful</a></h3>
+<p dir="auto">And here is where the removal of the <code class="notranslate">ImmutableItems</code> and <code class="notranslate">ImmutableLinks</code> data structure tricks have the most effect: <em>fetching the item/link pointers</em>! This is no longer necessary; we can simply remove those steps from the Meilisearch progress trace. Removing these full scans is very beneficial, as we were polluting the cache with useless, unnecessary disk pages just because we were iterating over all of them to fetch pointers. <em>Retrieving the item IDs</em> was the part that was already preparing this huge cache pollution to compute the useless stats. That's why the two <em>fetching</em> steps weren't <strong>that huge</strong>; once you let them do the full work, you can clearly see them taking a long time.</p>
+<h3 id="but-what-s-the-new-trick" dir="auto"><a href="#but-what-s-the-new-trick">But what's the New Trick?</a></h3>
+<p dir="auto">That's the meat of the article, and it's very important to understand LMDB's semantics here. LMDB is an MVCC ACID-first memory-mapped key-value store. A lot of complex words, but what's important is that it allows opening a write transaction at the same time you open any number of read transactions. The write transaction is not blocking the read transactions. However, it doesn't support concurrent writes, and opening a write transaction blocks a thread attempting to open one until the opened transaction commits or aborts.</p>
+<p dir="auto">Read transactions can only see entries that were committed by a write transaction that's been committed <strong>before</strong> the read one was opened, which also means that opening a read transaction from the thread using the write transaction will only show entries without the changes currently made in the write one. It's a very useful semantic that <a href="https://blog.kerollmops.com/meilisearch-is-too-slow#available-tricks-and-techniques" rel="nofollow">we already use in the new Meilisearch indexer</a>, but it doesn't help in this particular situation. Note that write transactions can also read their own writes.</p>
+<p dir="auto">In Meilisearch, when we receive new documents to index, we want them to be available to the search atomically. We don't want the database to be half valid, with references to internal documents/embedding IDs pointing to not-yet-available data. Exposing half-valid internal data structures could break search requests that start in the middle of two valid states, or we would have to implement a way to ignore certain changes until they are marked as valid, e.g., tombstones for not-yet-valid document IDs. We therefore open a write transaction (i.e., <code class="notranslate">RwTxn</code>) at the beginning of task processing, pass it the <code class="notranslate">&amp;mut RwTxn</code>, and let the task-processing function write to the database as needed. Once it is done, it exists, and we commit the transaction if everything went right (i.e., <code class="notranslate">RwTxn::commit(self)</code>), thereby consuming it.</p>
+<p dir="auto">The tricky part is that when we receive embeddings to insert, we put them into our vector store using a write transaction; they're therefore only visible to that transaction, but we need to unlock the power of parallelization: being able to read and modify the HNSW graph in parallel. We previously stored all the entry pointers because we didn't know in advance which one we would need to update the HNSW layers. LMDB scales linearly with the number of cores used to read a database; however, I was wondering if it would be possible to have multiple transactions on an uncommitted write. It would be ideal to read newly inserted embeddings without having to open multiple read transactions. That could have done the trick, but it would mean that we are exposing orphan embeddings, i.e., embeddings not connected to the graph, to other read transactions, complexifying and uglifying the algorithm, i.e., track them, remove them if need be.</p>
+<h4 id="designing-a-new-api-for-lmdb" dir="auto"><a href="#designing-a-new-api-for-lmdb">Designing a New API for LMDB</a></h4>
+<p dir="auto">So, I documented what kind of API LMDB exposed, and I stopped on a very interesting one: LMDB lets you create nested write transactions. If you provide a parent write transaction when you create a new one, you can get a new write transaction that applies its set of changes and either commits or aborts, rolling back only the subset of changes it modified. The child transaction can read the parent's changes. The parent transaction is unusable while this <strong>only</strong> child transaction is alive. I had the idea that what I needed was to be able to create as many read transactions from my write transaction to read, and move the read transactions onto different threads to read my uncommitted changes. Howard (<a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/hyc/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/hyc">@hyc</a>) and I briefly <a href="https://fosstodon.org/@kero/113465979956049984" rel="nofollow">discussed what could be the API, and he gave me permission to work on this very complex C codebase</a> 😮‍💨</p>
+<p dir="auto">So I <a href="https://bugs.openldap.org/show_bug.cgi?id=10395" rel="nofollow">went on an adventure to implement this new API</a>. It was mostly about modifying the behavior of <a href="https://git.openldap.org/openldap/openldap/-/blob/3464af65c99ff66a91ad06a841529324a01624e4/libraries/liblmdb/lmdb.h#L979-1017" rel="nofollow">the <code class="notranslate">mdb_txn_begin</code> function</a>, which was throwing an error when called with a parent transaction and the <code class="notranslate">MDB_RDONLY</code> flag simultaneously, allowing starting another nested read-only transaction even when the parent transaction must have been disabled, enabling <strong>multiple</strong> nested read transactions simultaneously. As you can see from the linked thread, I wasn't following C99 but rather C11, as I had to reimplement an atomically ref-counted (ARC) system to ensure that only the last dropped nested read transaction freed the allocations and was therefore using atomics. Unfortunately, the atomics APIs are only C11-compatible and require enabling extensions... I hadn't disabled the parent transaction when child read transactions were still alive because I was using <a href="https://github.com/meilisearch/heed">my LMDB Rust wrapper: heed</a>, which handles this issue via lifetimes. I finally implemented everything C users needed so that I could propose a well-working version of the nested read transactions feature.</p>
+<div class="highlight highlight-source-c notranslate position-relative overflow-auto" data-snippet-clipboard-copy-content="// Disclaimer: I am not a C developer
+
+MDB_env *env;
+MDB_dbi dbi;
+MDB_val key, data;
+MDB_txn *parent_txn, *txn;
+
+mdb_env_create(&amp;env);
+mdb_env_set_maxreaders(env, 10);
+mdb_env_set_mapsize(env, 10485760);
+mdb_env_open(env, &quot;./testdb&quot;, MDB_FIXEDMAP, 0664);
+
+mdb_txn_begin(env, NULL, 0, &amp;parent_txn);
+// We can now create as many nested read transactions from the parent transaction
+mdb_txn_begin(env, &amp;parent_txn, MDB_RDONLY, &amp;txn);" dir="auto"><pre class="notranslate"><span class="pl-c">// Disclaimer: I am not a C developer</span>
+
+<span class="pl-smi">MDB_env</span> <span class="pl-c1">*</span><span class="pl-s1">env</span>;
+<span class="pl-smi">MDB_dbi</span> <span class="pl-s1">dbi</span>;
+<span class="pl-smi">MDB_val</span> <span class="pl-s1">key</span>, <span class="pl-s1">data</span>;
+<span class="pl-smi">MDB_txn</span> <span class="pl-c1">*</span><span class="pl-s1">parent_txn</span>, <span class="pl-c1">*</span><span class="pl-s1">txn</span>;
+
+<span class="pl-en">mdb_env_create</span>(<span class="pl-c1">&amp;</span><span class="pl-s1">env</span>);
+<span class="pl-en">mdb_env_set_maxreaders</span>(<span class="pl-s1">env</span>, <span class="pl-c1">10</span>);
+<span class="pl-en">mdb_env_set_mapsize</span>(<span class="pl-s1">env</span>, <span class="pl-c1">10485760</span>);
+<span class="pl-en">mdb_env_open</span>(<span class="pl-s1">env</span>, <span class="pl-s">"./testdb"</span>, <span class="pl-c1">MDB_FIXEDMAP</span>, <span class="pl-c1">0664</span>);
+
+<span class="pl-en">mdb_txn_begin</span>(<span class="pl-s1">env</span>, <span class="pl-c1">NULL</span>, <span class="pl-c1">0</span>, <span class="pl-c1">&amp;</span><span class="pl-s1">parent_txn</span>);
+<span class="pl-c">// We can now create as many nested read transactions from the parent transaction</span>
+<span class="pl-en">mdb_txn_begin</span>(<span class="pl-s1">env</span>, <span class="pl-c1">&amp;</span><span class="pl-s1">parent_txn</span>, <span class="pl-c1">MDB_RDONLY</span>, <span class="pl-c1">&amp;</span><span class="pl-s1">txn</span>);</pre></div>
+<h4 id="integrating-the-api-into-hannoy" dir="auto"><a href="#integrating-the-api-into-hannoy">Integrating the API into hannoy</a></h4>
+<p dir="auto">So, it's time to replace our slow-to-initialize <code class="notranslate">ImmutableItems</code> and <code class="notranslate">ImmutableLinks</code> data structures with the following one: a wrapper for nested read transactions that lazily fetches items and graph links on demand. As you can see, we are generating and collecting enough nested read transactions from the current write transaction to fulfill the threads in the current thread pool. Every time the <code class="notranslate">FrozenReader::item(&amp;self, ItemId)</code> or the <code class="notranslate">FrozenReader::links(&amp;self, ItemId, usize)</code> is invoked (by a rayon thread), we pull a transaction from the channel and put it in the thread local storage (TLS).</p>
+<div class="highlight highlight-source-rust notranslate position-relative overflow-auto" data-snippet-clipboard-copy-content="pub(crate) struct FrozenReader<'t, D> {
+    rtxns_pool: crossbeam_channel::Receiver<RoTxn<'t, WithoutTls>>,
+    rtxns: thread_local::ThreadLocal<RoTxn<'t, WithoutTls>>,
+    index: u16,
+    database: Database<D>,
+}
+
+impl<'t, D: Distance> FrozenReader<'t, D> {
+    pub fn new(wtxn: &amp;'t RwTxn<'_>, index: u16, database: Database<D>) -> Result<Self> {
+        // We make sure to have one more thread so the current/main thread has a nested rtxn.
+        let num_threads = rayon::current_num_threads() + 1;
+        let (sender, rtxns_pool) = crossbeam_channel::bounded(num_threads);
+
+        // Sequentially generate read transactions from the writer transaction
+        for _ in 0..num_threads {
+            let rtxn = wtxn.nested_read_txn()?;
+            sender.try_send(rtxn).unwrap();
+        }
+
+        Ok(Self { rtxns_pool, rtxns: thread_local::ThreadLocal::new(), index, database })
+    }
+
+    pub fn item<'a>(&amp;'a self, item_id: ItemId) -> Result<Item<'a, D>> {
+        let rtxn = self.rtxns.get_or(|| self.rtxns_pool.try_recv().unwrap());
+        let key = Key::item(self.index, item_id);
+        // key is a `Key::item` so returned result must be a Node::Item
+        self.database.get(rtxn, &amp;key)?.and_then(|node| node.item()).ok_or(Error::missing_key(key))
+    }
+
+    pub fn links<'a>(&amp;'a self, item_id: ItemId, level: usize) -> Result<Links<'a>> {
+        let rtxn = self.rtxns.get_or(|| self.rtxns_pool.try_recv().unwrap());
+        let key = Key::links(self.index, item_id, level as u8);
+        // key is a `Key::links` so returned result must be a Node::Links
+        self.database.get(rtxn, &amp;key)?.and_then(|node| node.links()).ok_or(Error::missing_key(key))
+    }
+}" dir="auto"><pre class="notranslate"><span class="pl-k">pub</span><span class="pl-kos">(</span><span class="pl-k">crate</span><span class="pl-kos">)</span> <span class="pl-k">struct</span> <span class="pl-smi">FrozenReader</span><span class="pl-kos">&lt;</span><span class="pl-c1">'</span><span class="pl-ent">t</span><span class="pl-kos">,</span> <span class="pl-smi">D</span><span class="pl-kos">&gt;</span> <span class="pl-kos">{</span>
+    <span class="pl-c1">rtxns_pool</span><span class="pl-kos">:</span> crossbeam_channel<span class="pl-kos">::</span><span class="pl-smi">Receiver</span><span class="pl-kos">&lt;</span><span class="pl-smi">RoTxn</span><span class="pl-kos">&lt;</span><span class="pl-c1">'</span><span class="pl-ent">t</span><span class="pl-kos">,</span> <span class="pl-smi">WithoutTls</span><span class="pl-kos">&gt;</span><span class="pl-kos">&gt;</span><span class="pl-kos">,</span>
+    <span class="pl-c1">rtxns</span><span class="pl-kos">:</span> thread_local<span class="pl-kos">::</span><span class="pl-smi">ThreadLocal</span><span class="pl-kos">&lt;</span><span class="pl-smi">RoTxn</span><span class="pl-kos">&lt;</span><span class="pl-c1">'</span><span class="pl-ent">t</span><span class="pl-kos">,</span> <span class="pl-smi">WithoutTls</span><span class="pl-kos">&gt;</span><span class="pl-kos">&gt;</span><span class="pl-kos">,</span>
+    <span class="pl-c1">index</span><span class="pl-kos">:</span> <span class="pl-smi">u16</span><span class="pl-kos">,</span>
+    <span class="pl-c1">database</span><span class="pl-kos">:</span> <span class="pl-smi">Database</span><span class="pl-kos">&lt;</span><span class="pl-smi">D</span><span class="pl-kos">&gt;</span><span class="pl-kos">,</span>
+<span class="pl-kos">}</span>
+
+<span class="pl-k">impl</span><span class="pl-kos">&lt;</span><span class="pl-c1">'</span><span class="pl-ent">t</span><span class="pl-kos">,</span> <span class="pl-smi">D</span><span class="pl-kos">:</span> <span class="pl-smi">Distance</span><span class="pl-kos">&gt;</span> <span class="pl-smi">FrozenReader</span><span class="pl-kos">&lt;</span><span class="pl-c1">'</span><span class="pl-ent">t</span><span class="pl-kos">,</span> <span class="pl-smi">D</span><span class="pl-kos">&gt;</span> <span class="pl-kos">{</span>
+    <span class="pl-k">pub</span> <span class="pl-k">fn</span> <span class="pl-en">new</span><span class="pl-kos">(</span><span class="pl-s1">wtxn</span><span class="pl-kos">:</span> <span class="pl-c1">&amp;</span><span class="pl-c1">'</span><span class="pl-ent">t</span> <span class="pl-smi">RwTxn</span><span class="pl-kos">&lt;</span><span class="pl-c1">'</span><span class="pl-ent">_</span><span class="pl-kos">&gt;</span><span class="pl-kos">,</span> <span class="pl-s1">index</span><span class="pl-kos">:</span> <span class="pl-smi">u16</span><span class="pl-kos">,</span> <span class="pl-s1">database</span><span class="pl-kos">:</span> <span class="pl-smi">Database</span><span class="pl-kos">&lt;</span><span class="pl-smi">D</span><span class="pl-kos">&gt;</span><span class="pl-kos">)</span> -&gt; <span class="pl-smi">Result</span><span class="pl-kos">&lt;</span><span class="pl-smi">Self</span><span class="pl-kos">&gt;</span> <span class="pl-kos">{</span>
+        <span class="pl-c">// We make sure to have one more thread so the current/main thread has a nested rtxn.</span>
+        <span class="pl-k">let</span> num_threads = rayon<span class="pl-kos">::</span><span class="pl-en">current_num_threads</span><span class="pl-kos">(</span><span class="pl-kos">)</span> + <span class="pl-c1">1</span><span class="pl-kos">;</span>
+        <span class="pl-k">let</span> <span class="pl-kos">(</span>sender<span class="pl-kos">,</span> rtxns_pool<span class="pl-kos">)</span> = crossbeam_channel<span class="pl-kos">::</span><span class="pl-en">bounded</span><span class="pl-kos">(</span>num_threads<span class="pl-kos">)</span><span class="pl-kos">;</span>
+
+        <span class="pl-c">// Sequentially generate read transactions from the writer transaction</span>
+        <span class="pl-k">for</span> _ <span class="pl-k">in</span> <span class="pl-c1">0</span>..num_threads <span class="pl-kos">{</span>
+            <span class="pl-k">let</span> rtxn = wtxn<span class="pl-kos">.</span><span class="pl-en">nested_read_txn</span><span class="pl-kos">(</span><span class="pl-kos">)</span>?<span class="pl-kos">;</span>
+            sender<span class="pl-kos">.</span><span class="pl-en">try_send</span><span class="pl-kos">(</span>rtxn<span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-en">unwrap</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+        <span class="pl-kos">}</span>
+
+        <span class="pl-en">Ok</span><span class="pl-kos">(</span><span class="pl-smi">Self</span> <span class="pl-kos">{</span> rtxns_pool<span class="pl-kos">,</span> <span class="pl-c1">rtxns</span><span class="pl-kos">:</span> thread_local<span class="pl-kos">::</span><span class="pl-smi">ThreadLocal</span><span class="pl-kos">::</span><span class="pl-en">new</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">,</span> index<span class="pl-kos">,</span> database <span class="pl-kos">}</span><span class="pl-kos">)</span>
+    <span class="pl-kos">}</span>
+
+    <span class="pl-k">pub</span> <span class="pl-k">fn</span> <span class="pl-en">item</span><span class="pl-kos">&lt;</span><span class="pl-c1">'</span><span class="pl-ent">a</span><span class="pl-kos">&gt;</span><span class="pl-kos">(</span><span class="pl-c1">&amp;</span><span class="pl-c1">'</span><span class="pl-ent">a</span> <span class="pl-smi">self</span><span class="pl-kos">,</span> <span class="pl-s1">item_id</span><span class="pl-kos">:</span> <span class="pl-smi">ItemId</span><span class="pl-kos">)</span> -&gt; <span class="pl-smi">Result</span><span class="pl-kos">&lt;</span><span class="pl-smi">Item</span><span class="pl-kos">&lt;</span><span class="pl-c1">'</span><span class="pl-ent">a</span><span class="pl-kos">,</span> <span class="pl-smi">D</span><span class="pl-kos">&gt;</span><span class="pl-kos">&gt;</span> <span class="pl-kos">{</span>
+        <span class="pl-k">let</span> rtxn = <span class="pl-smi">self</span><span class="pl-kos">.</span><span class="pl-c1">rtxns</span><span class="pl-kos">.</span><span class="pl-en">get_or</span><span class="pl-kos">(</span>|| <span class="pl-smi">self</span><span class="pl-kos">.</span><span class="pl-c1">rtxns_pool</span><span class="pl-kos">.</span><span class="pl-en">try_recv</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-en">unwrap</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+        <span class="pl-k">let</span> key = <span class="pl-smi">Key</span><span class="pl-kos">::</span><span class="pl-en">item</span><span class="pl-kos">(</span><span class="pl-smi">self</span><span class="pl-kos">.</span><span class="pl-c1">index</span><span class="pl-kos">,</span> item_id<span class="pl-kos">)</span><span class="pl-kos">;</span>
+        <span class="pl-c">// key is a `Key::item` so returned result must be a Node::Item</span>
+        <span class="pl-smi">self</span><span class="pl-kos">.</span><span class="pl-c1">database</span><span class="pl-kos">.</span><span class="pl-en">get</span><span class="pl-kos">(</span>rtxn<span class="pl-kos">,</span> <span class="pl-c1">&amp;</span>key<span class="pl-kos">)</span>?<span class="pl-kos">.</span><span class="pl-en">and_then</span><span class="pl-kos">(</span>|node| node<span class="pl-kos">.</span><span class="pl-en">item</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-en">ok_or</span><span class="pl-kos">(</span><span class="pl-smi">Error</span><span class="pl-kos">::</span><span class="pl-en">missing_key</span><span class="pl-kos">(</span>key<span class="pl-kos">)</span><span class="pl-kos">)</span>
+    <span class="pl-kos">}</span>
+
+    <span class="pl-k">pub</span> <span class="pl-k">fn</span> <span class="pl-en">links</span><span class="pl-kos">&lt;</span><span class="pl-c1">'</span><span class="pl-ent">a</span><span class="pl-kos">&gt;</span><span class="pl-kos">(</span><span class="pl-c1">&amp;</span><span class="pl-c1">'</span><span class="pl-ent">a</span> <span class="pl-smi">self</span><span class="pl-kos">,</span> <span class="pl-s1">item_id</span><span class="pl-kos">:</span> <span class="pl-smi">ItemId</span><span class="pl-kos">,</span> <span class="pl-s1">level</span><span class="pl-kos">:</span> <span class="pl-smi">usize</span><span class="pl-kos">)</span> -&gt; <span class="pl-smi">Result</span><span class="pl-kos">&lt;</span><span class="pl-smi">Links</span><span class="pl-kos">&lt;</span><span class="pl-c1">'</span><span class="pl-ent">a</span><span class="pl-kos">&gt;</span><span class="pl-kos">&gt;</span> <span class="pl-kos">{</span>
+        <span class="pl-k">let</span> rtxn = <span class="pl-smi">self</span><span class="pl-kos">.</span><span class="pl-c1">rtxns</span><span class="pl-kos">.</span><span class="pl-en">get_or</span><span class="pl-kos">(</span>|| <span class="pl-smi">self</span><span class="pl-kos">.</span><span class="pl-c1">rtxns_pool</span><span class="pl-kos">.</span><span class="pl-en">try_recv</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-en">unwrap</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+        <span class="pl-k">let</span> key = <span class="pl-smi">Key</span><span class="pl-kos">::</span><span class="pl-en">links</span><span class="pl-kos">(</span><span class="pl-smi">self</span><span class="pl-kos">.</span><span class="pl-c1">index</span><span class="pl-kos">,</span> item_id<span class="pl-kos">,</span> level <span class="pl-k">as</span> <span class="pl-smi">u8</span><span class="pl-kos">)</span><span class="pl-kos">;</span>
+        <span class="pl-c">// key is a `Key::links` so returned result must be a Node::Links</span>
+        <span class="pl-smi">self</span><span class="pl-kos">.</span><span class="pl-c1">database</span><span class="pl-kos">.</span><span class="pl-en">get</span><span class="pl-kos">(</span>rtxn<span class="pl-kos">,</span> <span class="pl-c1">&amp;</span>key<span class="pl-kos">)</span>?<span class="pl-kos">.</span><span class="pl-en">and_then</span><span class="pl-kos">(</span>|node| node<span class="pl-kos">.</span><span class="pl-en">links</span><span class="pl-kos">(</span><span class="pl-kos">)</span><span class="pl-kos">)</span><span class="pl-kos">.</span><span class="pl-en">ok_or</span><span class="pl-kos">(</span><span class="pl-smi">Error</span><span class="pl-kos">::</span><span class="pl-en">missing_key</span><span class="pl-kos">(</span>key<span class="pl-kos">)</span><span class="pl-kos">)</span>
+    <span class="pl-kos">}</span>
+<span class="pl-kos">}</span></pre></div>
+<p dir="auto">Note that the strange <code class="notranslate">+ 1</code> added to the number of nested read transactions has a purpose. When calling the <code class="notranslate">item</code> and <code class="notranslate">links</code> methods, the channel was sometimes empty because the threads from the rayon pool pulled all the transactions and stored them in their own thread-local storage. When we accessed this data structure from the main thread, which is not part of the rayon thread pool, one read transaction was missing, so we accounted for it. Thanks, <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/dureuill/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/dureuill">@dureuill</a>, for the help on this one.</p>
+<p dir="auto">The <code class="notranslate">ThreadLocal</code> data structure stores data in a thread's local storage, eliminating the need for inter-thread synchronization to access it. We only need to do a bit of synchronisation when pulling a read transaction from the crossbeam channel, but once it's stored thread-locally, we can retrieve it freely. That may seem odd to use read transaction with the <code class="notranslate">WithoutTls</code> marker, i.e., <a href="https://git.openldap.org/openldap/openldap/-/blob/3464af65c99ff66a91ad06a841529324a01624e4/libraries/liblmdb/lmdb.h#L610-618" rel="nofollow"><code class="notranslate">MDB_NOTLS</code></a>, which indicates it can be moved between threads safely because it does not use TLS. The reason is that we need to create the nested read transactions from the main thread as the <code class="notranslate">RwTxn: !Sync</code> so cannot be accessed concurrently.</p>
+<p dir="auto">And all those reasons led me to design this approach, which satisfies our needs. It's memory safe by design; there cannot be writes while an <code class="notranslate">Item</code> or a <code class="notranslate">Links</code> is borrowed, as the <code class="notranslate">FrozenReader</code> data structure lives longer than the write transaction's lifetime, which means, in terms of Rust rules, you cannot use the <code class="notranslate">RwTxn</code> while you hold the lifetime. You must drop the <code class="notranslate">FrozenReader</code> to be able to write anything in the database, and that's exactly what we do: we collect the different graph modifications we want to perform, in memory, and apply them once we are done, while reading the database in parallel. After that, we write the changes synchronously using our original write transaction. Note that even without this safe, compile-time Rust lifetime-based design, the parent transaction would throw an error if used while child transactions are still alive.</p>
+<p dir="auto">We updated this customer to the brand-new version of Meilisearch, featuring our patched vector store. Let's take a look at a typical indexation now. As a reminder, we were inserting 7000 embeddings in about 1140s, which is about 6 embeddings per second. In the following progress trace, we are indexing ~13300 embeddings in about 668s, resulting in 20 embeddings per second! More than <strong>three times faster</strong>! This is even better than what I expected.</p>
+<div class="highlight highlight-source-js notranslate position-relative overflow-auto" data-snippet-clipboard-copy-content="&quot;progressTrace&quot;: {
+  // [..]
+  &quot;processing tasks > indexing > writing embeddings to database > retrieve the updated items&quot;: &quot;3.80ms&quot;,
+  &quot;processing tasks > indexing > writing embeddings to database > resolve graph entry points&quot;: &quot;173.33µs&quot;,
+  &quot;processing tasks > indexing > writing embeddings to database > building the graph > inserting items&quot;: &quot;27.05s&quot;,
+  &quot;processing tasks > indexing > writing embeddings to database > building the graph&quot;: &quot;27.05s&quot;,
+  &quot;processing tasks > indexing > writing embeddings to database > patch old new deleted links&quot;: &quot;232.62s&quot;,
+  &quot;processing tasks > indexing > writing embeddings to database > writing the items&quot;: &quot;402.52s&quot;,
+  &quot;processing tasks > indexing > writing embeddings to database > deleting the links&quot;: &quot;2.13s&quot;,
+  &quot;processing tasks > indexing > writing embeddings to database > write the metadata&quot;: &quot;3.89s&quot;,
+  &quot;processing tasks > indexing > writing embeddings to database&quot;: &quot;668.22s&quot;,
+  // [..]
+  &quot;processing tasks > indexing > finalizing > committing&quot;: &quot;24.15s&quot;,
+  &quot;processing tasks > indexing > finalizing > computing stats&quot;: &quot;18.27ms&quot;,
+  &quot;processing tasks > indexing > finalizing&quot;: &quot;24.60s&quot;,
+  &quot;processing tasks > indexing&quot;: &quot;1773.29s&quot;,
+  &quot;processing tasks&quot;: &quot;1773.73s&quot;,
+  &quot;writing tasks to disk > task&quot;: &quot;415.73ms&quot;,
+  &quot;writing tasks to disk&quot;: &quot;415.82ms&quot;
+},
+&quot;writeChannelCongestion&quot;: {
+  &quot;attempts&quot;: 14819408,
+  &quot;blocking_attempts&quot;: 14435620,
+  &quot;blocking_ratio&quot;: 0.9741023182868958
+},
+&quot;internalDatabaseSizes&quot;: {
+  // [..]
+  &quot;vectorStore&quot;: &quot;8.64 GiB (+412 KiB)&quot;,
+  &quot;documents&quot;: &quot;61.01 GiB (+2.55 MiB)&quot;
+}" dir="auto"><pre class="notranslate"><span class="pl-s">"progressTrace"</span>: <span class="pl-kos">{</span>
+  <span class="pl-c">// [..]</span>
+  <span class="pl-s">"processing tasks &gt; indexing &gt; writing embeddings to database &gt; retrieve the updated items"</span>: <span class="pl-s">"3.80ms"</span><span class="pl-kos">,</span>
+  <span class="pl-s">"processing tasks &gt; indexing &gt; writing embeddings to database &gt; resolve graph entry points"</span>: <span class="pl-s">"173.33µs"</span><span class="pl-kos">,</span>
+  <span class="pl-s">"processing tasks &gt; indexing &gt; writing embeddings to database &gt; building the graph &gt; inserting items"</span>: <span class="pl-s">"27.05s"</span><span class="pl-kos">,</span>
+  <span class="pl-s">"processing tasks &gt; indexing &gt; writing embeddings to database &gt; building the graph"</span>: <span class="pl-s">"27.05s"</span><span class="pl-kos">,</span>
+  <span class="pl-s">"processing tasks &gt; indexing &gt; writing embeddings to database &gt; patch old new deleted links"</span>: <span class="pl-s">"232.62s"</span><span class="pl-kos">,</span>
+  <span class="pl-s">"processing tasks &gt; indexing &gt; writing embeddings to database &gt; writing the items"</span>: <span class="pl-s">"402.52s"</span><span class="pl-kos">,</span>
+  <span class="pl-s">"processing tasks &gt; indexing &gt; writing embeddings to database &gt; deleting the links"</span>: <span class="pl-s">"2.13s"</span><span class="pl-kos">,</span>
+  <span class="pl-s">"processing tasks &gt; indexing &gt; writing embeddings to database &gt; write the metadata"</span>: <span class="pl-s">"3.89s"</span><span class="pl-kos">,</span>
+  <span class="pl-s">"processing tasks &gt; indexing &gt; writing embeddings to database"</span>: <span class="pl-s">"668.22s"</span><span class="pl-kos">,</span>
+  <span class="pl-c">// [..]</span>
+  <span class="pl-s">"processing tasks &gt; indexing &gt; finalizing &gt; committing"</span>: <span class="pl-s">"24.15s"</span><span class="pl-kos">,</span>
+  <span class="pl-s">"processing tasks &gt; indexing &gt; finalizing &gt; computing stats"</span>: <span class="pl-s">"18.27ms"</span><span class="pl-kos">,</span>
+  <span class="pl-s">"processing tasks &gt; indexing &gt; finalizing"</span>: <span class="pl-s">"24.60s"</span><span class="pl-kos">,</span>
+  <span class="pl-s">"processing tasks &gt; indexing"</span>: <span class="pl-s">"1773.29s"</span><span class="pl-kos">,</span>
+  <span class="pl-s">"processing tasks"</span>: <span class="pl-s">"1773.73s"</span><span class="pl-kos">,</span>
+  <span class="pl-s">"writing tasks to disk &gt; task"</span>: <span class="pl-s">"415.73ms"</span><span class="pl-kos">,</span>
+  <span class="pl-s">"writing tasks to disk"</span>: <span class="pl-s">"415.82ms"</span>
+<span class="pl-kos">}</span><span class="pl-kos">,</span>
+<span class="pl-s">"writeChannelCongestion"</span>: <span class="pl-kos">{</span>
+  <span class="pl-s">"attempts"</span>: <span class="pl-c1">14819408</span><span class="pl-kos">,</span>
+  <span class="pl-s">"blocking_attempts"</span>: <span class="pl-c1">14435620</span><span class="pl-kos">,</span>
+  <span class="pl-s">"blocking_ratio"</span>: <span class="pl-c1">0.9741023182868958</span>
+<span class="pl-kos">}</span><span class="pl-kos">,</span>
+<span class="pl-s">"internalDatabaseSizes"</span>: <span class="pl-kos">{</span>
+  <span class="pl-c">// [..]</span>
+  <span class="pl-s">"vectorStore"</span>: <span class="pl-s">"8.64 GiB (+412 KiB)"</span><span class="pl-kos">,</span>
+  <span class="pl-s">"documents"</span>: <span class="pl-s">"61.01 GiB (+2.55 MiB)"</span>
+<span class="pl-kos">}</span></pre></div>
+<p dir="auto">Note that the customer is using sharding to speed up embedding indexation, not only indexing 20 embeddings per second, but many more. Note that we are using AWS EBS to ensure we don't lose data. This disk technology is great because it replicates your data across different NVMe drives, but communication between the machine and the disks is over the network, which is "slow": any page fetch (set up to do look-ahead) takes an average of 1 millisecond. For a disk, it's slow, but for a network, it's quite impressive.</p>
+<p dir="auto">So, the sinews of war in this kind of environment are not to waste a single bit of disk cache; disk cache prevents you from triggering page faults too often and from fetching too many pages from disk. With this new patch, we have just landed, we ensure only the necessary pages are loaded into the cache, not all available pages in LMDB. We avoid evicting important pages. As a result, you can see that <em>building the graph</em> and <em>patch old new deleted links</em> increase because those tasks are now, lazily, loading the necessary pages that <em>retrieving the items ids</em>, <em>fetch item pointers</em>, and <em>fetch links pointers</em> were doing before. <strong>Better pages are in the disk page cache now!</strong></p>
+<p dir="auto">In conclusion, this new LMDB feature is extremely useful and, as a bonus, does not require any API changes. We have been using it in production since December 10th, 2025. It would be helpful if the LMDB team could review the work I have done. I dedicated a lot of personal time to it and ensured that I met all the requirements to eventually get it upstream. Maintaining a fork and keeping it up to date with various upstream patches is not ideal. Thanks anyway for your time and the wonderful tools you provide.</p>
+<p dir="auto"><em>This blog post has been handcrafted by using my own wording and thoughts 🌱</em></p></body></html>
+    </article>
+
+    <div class="vote-emojis">
+    <a class="btn btn-outline-secondary vote-emoji" href="https://github.com/Kerollmops/blog/issues/23#comment-composer-heading" role="button">🙂 ✚</a>
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    </div>
+
+    <div class="tiny-utterances"
+        data-repo-owner="Kerollmops"
+        data-repo-name="blog"
+        data-issue-number="23"
+        data-max-comments="10">
+        <a class="tu-button"
+            href="https://github.com/Kerollmops/blog/issues/23#comment-composer-heading">
+            1 comments, join the discussion
+        </a>
+    </div>
+
+
+      
+  <footer class="profil text-center">
+    <p class="long-text text-uppercase">About Clément Renault</p>
+    <p class="text-center">I am the co-founder and CTO of <a href="https://github.com/meilisearch">@meilisearch</a>. I learned coding at the Paris <a href="https://github.com/42school">@42school</a>. I live in Paris and love video games.</p>
+    <hr class="mb-3"/>
+    <p class="text-center">Subscribe to <a href="/atom.xml">my RSS/Atom feed</a> for the latest updates and articles.</p>
+  </footer>
+
+    </div>
+  </body>
+</html>
