@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="auto">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script defer data-domain="blog.kerollmops.com" src="https://plausible.io/js/script.js"></script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦀</text></svg>">
+    <script type="application/javascript" src="/assets/script.js"></script>
+    <script defer type="application/javascript" src="/assets/tiny-utterances.js"></script>
+    <script type="application/javascript" src="/assets/matter.min.js"></script>
+    <script type="application/javascript" src="/assets/balls.js"></script>
+    <link href="assets/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/style.css" rel="stylesheet">
+    <link href="assets/tiny-utterances.css" rel="stylesheet">
+
+    <!-- Primary Meta Tags -->
+    <title>The Good, the Bad, and the Leaky: jemalloc, bumpalo, and mimalloc in meilisearch</title>
+    <meta name="title" content="The Good, the Bad, and the Leaky: jemalloc, bumpalo, and mimalloc in meilisearch" />
+    <meta name="description" content=" How I dove into a spooky memory leak, found it, but discovered that the actual leak was more on mimalloc's side than on meilisearch's. I used jemalloc's powerful tooling and a bit of help from an LLM to dive into this hard-to-tackle issue. " />
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://blog.kerollmops.com/the-good-the-bad-and-the-leaky-jemalloc-bumpalo-and-mimalloc-in-meilisearch" />
+    <meta property="og:title" content="The Good, the Bad, and the Leaky: jemalloc, bumpalo, and mimalloc in meilisearch" />
+    <meta property="og:description" content=" How I dove into a spooky memory leak, found it, but discovered that the actual leak was more on mimalloc's side than on meilisearch's. I used jemalloc's powerful tooling and a bit of help from an LLM to dive into this hard-to-tackle issue. " />
+    <meta property="og:image" content="https://blog.kerollmops.com/preview/the-good-the-bad-and-the-leaky-jemalloc-bumpalo-and-mimalloc-in-meilisearch.png" />
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="The Good, the Bad, and the Leaky: jemalloc, bumpalo, and mimalloc in meilisearch" />
+    <meta property="twitter:title" content="The Good, the Bad, and the Leaky: jemalloc, bumpalo, and mimalloc in meilisearch" />
+    <meta property="twitter:description" content=" How I dove into a spooky memory leak, found it, but discovered that the actual leak was more on mimalloc's side than on meilisearch's. I used jemalloc's powerful tooling and a bit of help from an LLM to dive into this hard-to-tackle issue. " />
+    <meta property="twitter:image" content="https://blog.kerollmops.com/preview/the-good-the-bad-and-the-leaky-jemalloc-bumpalo-and-mimalloc-in-meilisearch.png" />
+
+    
+  <meta name="description" content="Article by Clément Renault titled: The Good, the Bad, and the Leaky: jemalloc, bumpalo, and mimalloc in meilisearch.">
+  <link rel="stylesheet" href="/assets/starry-night.css">
+  <style></style>
+
+  </head>
+  <body>
+    <canvas id="ballsCanvas"></canvas>
+    <div class="container">
+      
+<header class="profil">
+  <a href="/">
+      <div class="text-center">
+          <img src="https://avatars.githubusercontent.com/u/3610253?v=4&s=100" class="profil-picture" alt="Profil picture of Clément Renault">
+          <p class="long-text text-uppercase">Clément Renault</p>
+      </div>
+  </a>
+</header>
+
+
+      
+    <p class="text-center">
+        <small class="text-body-secondary"><i>March 20, 2026</i> — <a href="https://github.com/Kerollmops/blog/issues/24#comment-composer-heading">0 comments</a></small>
+    </p>
+    <article>
+        <h1 class="mb-4 text-center">The Good, the Bad, and the Leaky: jemalloc, bumpalo, and mimalloc in meilisearch</h1>
+
+        <html><head></head><body><p dir="auto">It's been some time since a couple of open-source users reported that <a data-hovercard-type="issue" data-hovercard-url="/meilisearch/meilisearch/issues/6112/hovercard" href="https://github.com/meilisearch/meilisearch/issues/6112">meilisearch is leaking memory</a>. I spent time reviewing the codebase to see where a leak could have hidden, but I never found anything suspicious enough. I was also very suspicious of those claims, as we are running multiple thousand meilisearch instances on our Cloud and have never had any leaking issues that caused instances to be killed by the OS...</p>
+<p dir="auto">...actually, yes, <a href="https://github.com/meilisearch/meilisearch/releases/tag/v1.25.0">we had a leak in v1.25</a>, but it was related to an LMDB feature I was developing back then, and I talked about this <a href="https://blog.kerollmops.com/patching-lmdb-how-we-made-meilisearch-s-vector-store-333-faster" rel="nofollow">in another blog post</a>. This is fixed now, and it was entirely my fault to <del>dive into a complex C codebase</del> and deploy a spooky change without extensive testing.</p>
+<p dir="auto">I also investigated meilisearch on the Cloud and always found that meilisearch wasn't leaking memory in any way. As you can see below, this is the memory usage of one of a customer who is heavily indexing embeddings and keywords. No apparent leak while they have tens of millions of documents on this machine (part of a sharded cluster).</p>
+<a href="assets/images/6d55cefa0f4679f9.png" rel="noopener noreferrer" target="_blank"><img alt="Memory usage on the Cloud" height="271" src="assets/images/6d55cefa0f4679f9.png" style="max-width: 100%; height: auto; max-height: 271px;" width="562"></a>
+<p dir="auto">But one day, I noticed something similar to what was reported: meilisearch was using more and more resident memory. Resident memory, also known as RSS, is the memory allocated by the OS that resides in RAM, unlike virtual (VRT) memory, which often comes from memory-mapped files and is allocated on demand. RSS memory comes from calls to <a href="https://linux.die.net/man/2/munmap" rel="nofollow">the <code class="notranslate">mmap</code> syscall</a> with the <code class="notranslate">MAP_ANONYMOUS</code> option. That's what your allocator does when you <code class="notranslate">malloc</code> something if there are no pages already allocated.</p>
+<a href="assets/images/a3c1f2a93675005.png" rel="noopener noreferrer" target="_blank"><img alt="mimalloc + leak + LMDB with sysalloc" height="457" src="assets/images/a3c1f2a93675005.png" style="max-width: 100%; height: auto; max-height: 457px;" width="1120"></a>
+<p dir="auto">That's what I saw when indexing millions of small documents in meilisearch. So I decided to dive into the rabbit hole and find this leak. In Rust, I thought it was very obvious to detect leaks because it often comes from explicit calls to <a href="https://doc.rust-lang.org/stable/std/mem/fn.forget.html" rel="nofollow">the <code class="notranslate">mem::forget</code> function</a>. Unfortunately, we don't have any explicit call to it.</p>
+<h4 id="jemalloc-to-the-rescue" dir="auto"><a href="#jemalloc-to-the-rescue">jemalloc to the Rescue</a></h4>
+<p dir="auto">We used jemalloc for a long time before we switched to mimalloc. The main reason was about performance and Windows and macOS compatibility. We thought mimalloc would work better with Windows, as it is a Microsoft project, but <a href="https://github.com/meilisearch/meilisearch/pull/5094/changes/e905a72d731f0e6dc581d9b7ad02b94e594aa94e">we were eventually proven wrong</a> and disabled mimalloc on Windows. Still, we were able to <a data-hovercard-type="pull_request" data-hovercard-url="/meilisearch/meilisearch/pull/1280/hovercard" href="https://github.com/meilisearch/meilisearch/pull/1280">use mimalloc on macOS this time</a>. The story repeats itself, and on Windows, meilisearch uses the default allocator.</p>
+<p dir="auto">However, jemalloc is a very performant allocator, better in every way than macOS's default allocator, for sure 👓, and, most importantly, it has <a href="https://github.com/jemalloc/jemalloc/wiki/Use-Case%3A-Leak-Checking">very helpful tools to track leaks and heap allocations</a>. I changed meilisearch's global allocator back to jemalloc, enabled the <em>profiling</em> feature, and generated a couple (too many) SVG outputs of memory tracking.</p>
+<p dir="auto">The SVG showed around 100 MiB being leaked in some part of the code I recently modified. New code is often the source of new bugs, so I <a data-hovercard-type="pull_request" data-hovercard-url="/meilisearch/meilisearch/pull/6080/hovercard" href="https://github.com/meilisearch/meilisearch/pull/6080">reviewed my code more thoroughly</a>, and I invite you to do the same because I am very proud of it. Long story short, there was no memory leak introduced in my PR, yet the report still references this code.</p>
+<p dir="auto">I am not a very prominent user of AI Agents. I use Zed, right, but not for its AI-related features, but more because I love Rust, and this editor is quite good. As the Zed team is using Zed to work on the Zed codebase, they worked hard on the Rust analyzer integration and the debugger. That's a breeze compared to Sublime Text's bad Rust integration and VSCode's browser slowness and resource usage.</p>
+<p dir="auto">End of digression. I still decided to get a little help from an LLM to see where it could lead me. I generated a text report from a jemalloc heap analysis, and I gave it to my Zed Claude Sonnet 4.5 Agent... It impressively found multiple leaks in the codebase, approximately four. Rest assured, only one was an actual leak, yes... AI, you know. Still, the one it found was an actual leak.</p>
+<h4 id="the-trap-of-bumpalo" dir="auto"><a href="#the-trap-of-bumpalo">The Trap of Bumpalo</a></h4>
+<p dir="auto">You may know about Bumpalo. It's a bump allocator library. The main goal is to reduce pressure on allocators (e.g., mimalloc, jemalloc) by allocating memory chunks that are freed only when the <code class="notranslate">Bump</code> object is dropped. We use this in meilisearch to perform many small allocations (e.g., document IDs, field names) and retain them throughout indexation, avoiding numerous small, scattered allocations that could lead to cache-unfriendly patterns and slowness.</p>
+<p dir="auto">The main trap with bumpalo is our use of <a href="https://docs.rs/bumpalo/latest/bumpalo/collections/vec/struct.Vec.html#method.into_bump_slice" rel="nofollow"><code class="notranslate">bumpalo::Vec::into_bump_slice</code></a>. This method takes an allocated vector and converts it into the underlying slice. This slice can be used safely and is not even considered a leak, since its lifetime is the <code class="notranslate">Bump</code> one. Which means that the slice will be deallocated when the underlying memory chunk owned by the Bump is dropped. However, there is a catch here. When converting a <code class="notranslate">bumpalo::Vec</code> to a slice, the slice never runs the drop glue, and we were storing a global-allocator-backed data structure, i.e., an <code class="notranslate">std::Vec</code>, in this <code class="notranslate">bumpalo::Vec</code>. What a mistake. You can <a data-hovercard-type="pull_request" data-hovercard-url="/meilisearch/meilisearch/pull/6212/hovercard" href="https://github.com/meilisearch/meilisearch/pull/6212">review the patch</a> for the AI-assisted-discovered leak.</p>
+<p dir="auto">I felt relieved after I finally fixed this longstanding bug. It was there since v1.12, which was approximately 1.5 years ago. All this time, and nobody noticed that. We were wondering <a href="https://docs.rs/bumpalo/latest/bumpalo/index.html#deallocation-en-masse-but-no-drop" rel="nofollow">whether bumpalo was "at fault" here</a> and whether the <code class="notranslate">bumpalo::Vec</code> should only accept storing structures that implement a specific <code class="notranslate">bumpalo::Drop</code> trait. However, implementing that seemed very complex. So, I started measuring the memory usage of meilisearch again with the clear leak fixed...</p>
+<a href="assets/images/e811c7e17b5feb22.png" rel="noopener noreferrer" target="_blank"><img alt="mimalloc no-leak + LMDB with sysalloc" height="460" src="assets/images/e811c7e17b5feb22.png" style="max-width: 100%; height: auto; max-height: 460px;" width="1120"></a>
+<p dir="auto">What the heck?! I checked whether I was using a pre-patch binary, and no, there was still a huge increase in memory usage. My patch actually changed nothing. Someone could easily fall into dementia, but I cooled down and tried using my "super-powered" AI agent. This time, it found nothing.</p>
+<h4 id="the-downsides-of-using-non-rust-dependencies" dir="auto"><a href="#the-downsides-of-using-non-rust-dependencies">The Downsides of Using Non-Rust Dependencies</a></h4>
+<p dir="auto">Meilisearch uses LMDB, a lightning-fast memory-mapped key-value store, to store and operate its internal indexes. We store the inverted index for our search engine to serve search requests, and thanks to its implementation of multiple-view concurrency control (MVCC), we can serve search requests while updating the internal data structures. It's probably the most important dependency in the engine, and we put a lot of pressure on it. Note that this library is in C.</p>
+<p dir="auto"><em>In C, you said?</em> Yes, and that's part of the answer to our memory leak. Meilisearch is statically linked with LMDB, and meilisearch also uses mimalloc as the global allocator. But LMDB doesn't use mimalloc and relies on the default allocator, which means the system allocator. Long story short, LMDB is allocating and deallocating pages that meilisearch cannot reuse because both allocators are not cooperating, and that's the main clue to this mystery.</p>
+<p dir="auto">I decided to remove the custom global allocator in meilisearch and set LD_PRELOAD (which is an environment variable used to load shared libraries before others, and in this case, replace the allocator), and jemalloc with profiling enabled, so I can get a good report to provide to my "super-powered" AI agent. I already dove into LMDB before, and <a href="https://github.com/LMDB/lmdb/blob/40d3741b7d40ba4c75cb91dd9987ce692d376d71/libraries/liblmdb/mdb.c#L2103-L2113">some allocation-related parts looked quite spooky</a> to me. I tend not to like this kind of unbounded linked-list of page-size allocations.</p>
+<a href="assets/images/faffec45760d620e.png" rel="noopener noreferrer" target="_blank"><img alt="jemalloc ld-preload" height="458" src="assets/images/faffec45760d620e.png" style="max-width: 100%; height: auto; max-height: 458px;" width="1121"></a>
+<p dir="auto">Wow! The goal wasn't to drastically reduce memory allocations by using jemalloc, but rather to extract a report. This is very interesting, as when using jemalloc, we can clearly see that no leak appears. The main change here was to use a single memory allocator for both meilisearch and LMDB to enable LMDB auditing, since I was only enabling jemalloc profiling for the meilisearch application before. It seems that the leak has been resolved by unifying them. I extracted a report, and it didn't even show the spooky linked list I talked about before, no actual leak of any kind.</p>
+<h4 id="using-mimalloc-everywhere" dir="auto"><a href="#using-mimalloc-everywhere">Using Mimalloc Everywhere</a></h4>
+<p dir="auto">So, I tried using mimalloc instead of jemalloc to see how meilisearch behaves when it shares its allocations with LMDB, and... the result wasn't very convincing; the leak is back. The issue seemed to arise only with mimalloc, not with jemalloc. I looked up on the internet and found out that the amazing team behind mimalloc was actually working on a v3. We were using v2, the version available on main.</p>
+<a href="assets/images/5dce3113c0cd35fb.png" rel="noopener noreferrer" target="_blank"><img alt="mimalloc v2 ld-preload" height="459" src="assets/images/5dce3113c0cd35fb.png" style="max-width: 100%; height: auto; max-height: 459px;" width="1115"></a>
+<p dir="auto">I compiled mimalloc v3 and <code class="notranslate">LD_PRELOAD</code> it in meilisearch, and the result was much, much better. As you can see, it is now close to jemalloc's memory usage. I found out later that the <em>override</em> mimalloc's feature existed, and its goal was to force every allocator call to link to mimalloc and enable it. I also used the <code class="notranslate">nm</code> command to verify that the different malloc symbols pointed to the <code class="notranslate">mi_malloc</code> symbols.</p>
+<a href="assets/images/998aacc754f1e0ad.png" rel="noopener noreferrer" target="_blank"><img alt="Mimalloc v3 for Meili + LMDB" height="457" src="assets/images/998aacc754f1e0ad.png" style="max-width: 100%; height: auto; max-height: 457px;" width="1117"></a>
+<p dir="auto"><a href="https://github.com/microsoft/mimalloc#versions">According to the documentation</a>, mimalloc v3 is much better at sharing memory between threads and promises a (much) lower memory usage for certain large workloads. I think indexing documents with meilisearch falls into this category, then. We also probably benefit from other features, such as the simplified lock-free design and support for true first-class heaps. I am not sure what the latter two features do, but they seem very beneficial to our workload.</p>
+<p dir="auto">We ran some benchmarks to see if everything was good, and it <a data-hovercard-type="pull_request" data-hovercard-url="/meilisearch/meilisearch/pull/6201/hovercard" href="https://github.com/meilisearch/meilisearch/pull/6201#issuecomment-4047531308">resulted in very good performance gains</a>. We had some gains of about 13% and some losses of about 9%, but those are necessary tradeoffs. Note that those benchmarks are run on a dedicated NVMe machine. In the Cloud, most of our customers use network disks, and performance gains will be even more visible with higher-latency disks, e.g., AWS EBS.</p>
+<p dir="auto">The most important thing is that the memory usage is much lower than before. Our systems have limited RAM, and the disks are slow (especially network disks). You prefer not to fetch the disk every time you access a page and instead rely on the page cache. That's why reducing our RSS frees up more memory for the page cache and reduces disk reads, ultimately improving performance. There is still a tradeoff between <code class="notranslate">munmap</code>ping memory too often or too early compared to keeping the memory, but mimalloc v3 seems very efficient at managing this tradeoff.</p>
+<a href="assets/images/cbc1ce06e1c04668.png" rel="noopener noreferrer" target="_blank"><img alt="Image" height="456" src="assets/images/cbc1ce06e1c04668.png" style="max-width: 100%; height: auto; max-height: 456px;" width="971"></a>
+<p dir="auto">After testing the engine for some time with mimalloc v3, I still see some spikes in particularly heavy-indexing parts, but it's much easier to see where we can improve the engine without RSS noise as we had before. The story continues, but it will mostly focus on engine-side optimizations to reduce allocation loads rather than "meta" changes to the engine.</p>
+<p dir="auto"><em>This blog post has been handcrafted by using my own wording and thoughts 🌱</em></p></body></html>
+    </article>
+
+    <div class="vote-emojis">
+    <a class="btn btn-outline-secondary vote-emoji" href="https://github.com/Kerollmops/blog/issues/24#comment-composer-heading" role="button">🙂 ✚</a>
+
+    
+    <a class="btn btn-outline-secondary vote-emoji" href="https://github.com/Kerollmops/blog/issues/24#comment-composer-heading" role="button">👍 3</a>
+    
+
+    
+
+    
+
+    
+        <a class="btn btn-outline-secondary vote-emoji" href="https://github.com/Kerollmops/blog/issues/24#comment-composer-heading" role="button">❤️ 3</a>
+    
+
+    
+        <a class="btn btn-outline-secondary vote-emoji" href="https://github.com/Kerollmops/blog/issues/24#comment-composer-heading" role="button">🎉 1</a>
+    
+
+    
+
+    
+
+    
+    </div>
+
+    <div class="tiny-utterances"
+        data-repo-owner="Kerollmops"
+        data-repo-name="blog"
+        data-issue-number="24"
+        data-max-comments="10">
+        <a class="tu-button"
+            href="https://github.com/Kerollmops/blog/issues/24#comment-composer-heading">
+            0 comments, join the discussion
+        </a>
+    </div>
+
+
+      
+  <footer class="profil text-center">
+    <p class="long-text text-uppercase">About Clément Renault</p>
+    <p class="text-center">I am the co-founder and CTO of <a href="https://github.com/meilisearch">@meilisearch</a>. I learned coding at the Paris <a href="https://github.com/42school">@42school</a>. I live in Paris and love video games.</p>
+    <hr class="mb-3"/>
+    <p class="text-center">Subscribe to <a href="/atom.xml">my RSS/Atom feed</a> for the latest updates and articles.</p>
+  </footer>
+
+    </div>
+  </body>
+</html>
